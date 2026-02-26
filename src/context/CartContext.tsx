@@ -10,10 +10,18 @@ interface Product {
     image: string | null;
 }
 
+interface CartItemVariant {
+    option: string;
+    value: string;
+    priceDelta: number;
+}
+
 interface CartItem {
     id: number;
     product_id: number;
     quantity: number;
+    unit_price: string | number;
+    variants: CartItemVariant[] | null;
     product: Product;
 }
 
@@ -26,7 +34,7 @@ interface Cart {
 interface CartContextType {
     cart: Cart | null;
     isLoading: boolean;
-    addToCart: (productId: number, quantity: number) => Promise<void>;
+    addToCart: (productId: number, quantity: number, unitPrice?: number, variants?: CartItemVariant[]) => Promise<void>;
     updateQuantity: (itemId: number, quantity: number) => Promise<void>;
     removeFromCart: (itemId: number) => Promise<void>;
     clearCart: () => Promise<void>;
@@ -60,11 +68,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         fetchCart();
     }, [user]);
 
-    const addToCart = async (productId: number, quantity: number) => {
-        if (!user) return; // Or prompt login
+    const addToCart = async (productId: number, quantity: number, unitPrice?: number, variants?: CartItemVariant[]) => {
+        if (!user) return;
         setIsLoading(true);
         try {
-            const response = await api.post('/cart', { product_id: productId, quantity });
+            const response = await api.post('/cart', {
+                product_id: productId,
+                quantity,
+                unit_price: unitPrice,
+                variants: variants
+            });
             setCart(response.data);
         } catch (error) {
             console.error('Error adding to cart:', error);
@@ -127,7 +140,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const cartCount = cart?.items?.reduce((total, item) => total + item.quantity, 0) || 0;
 
     const cartTotal = cart?.items?.reduce((total, item) => {
-        return total + (item.quantity * parseFloat(item.product.price));
+        const price = item.unit_price ? parseFloat(String(item.unit_price)) : parseFloat(item.product.price);
+        return total + (item.quantity * price);
     }, 0) || 0;
 
     return (

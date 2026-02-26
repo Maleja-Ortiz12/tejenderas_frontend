@@ -1,15 +1,31 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Navigation, Pagination, EffectFade } from 'swiper/modules';
+import { motion, AnimatePresence } from 'framer-motion';
 import 'swiper/swiper-bundle.css';
 import toast from 'react-hot-toast';
 
 import api from '../api';
-import Logo from '../components/Logo';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
 import CartDrawer from '../components/CartDrawer';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+
+interface AttributeValuePivot {
+    id: number;
+    name: string;
+    attribute_id: number;
+    image?: string | null;
+    price_delta?: number;
+    attribute?: { id: number; name: string };
+    pivot?: {
+        price_delta?: number;
+        image?: string | null;
+        base_price?: number;
+        markup?: number;
+        stock?: number;
+    };
+}
 
 interface Product {
     id: number;
@@ -18,10 +34,17 @@ interface Product {
     description: string;
     image?: string | null;
     category?: string;
+    category_id?: number;
+    subcategory_id?: number;
     brand?: string;
     subcategory?: string;
     is_promo?: boolean;
     is_combo?: boolean;
+    stock?: number;
+    images?: string[];
+    attribute_values?: AttributeValuePivot[];
+    category_obj?: { id: number; name: string; slug: string };
+    key?: string; // Add key property to Product interface
 }
 
 interface HeroBanner {
@@ -36,43 +59,195 @@ interface HeroBanner {
     textClass: string;
 }
 
-const CustomLogo = ({ className = "w-20 h-20" }: { className?: string }) => (
-    <Logo className={className} />
-);
+// Helper to get storage URL
+const storageUrl = (path: string | null | undefined) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+    const baseUrl = apiUrl.replace('/api', '');
+    return `${baseUrl}/storage/${path}`;
+};
+
+// Sub-component for Product Image Carousel to handle Swiper properly
+const ProductImageCarousel = ({ item, isPromoSection = false, onRedirect }: { item: Product, isPromoSection?: boolean, onRedirect?: (item: Product) => void }) => {
+    const [swiper, setSwiper] = useState<any>(null);
+
+    return (
+        <div className="w-full h-full relative group/inner-swiper">
+            {item.images && Array.isArray(item.images) && item.images.length > 0 ? (
+                <>
+                    <Swiper
+                        modules={[Navigation, Pagination, Autoplay]}
+                        nested={true}
+                        loop={item.images.length > 1}
+                        autoplay={item.images.length > 1 ? {
+                            delay: 3000,
+                            disableOnInteraction: false,
+                            pauseOnMouseEnter: true
+                        } : false}
+                        onSwiper={setSwiper}
+                        pagination={item.images.length > 1 ? { clickable: true, dynamicBullets: true } : false}
+                        className="w-full h-full"
+                    >
+                        {item.images.map((img, i) => (
+                            <SwiperSlide key={i}>
+                                <img
+                                    src={storageUrl(img) || ''}
+                                    alt={`${item.name} ${i + 1}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+
+                    {item.images.length > 1 && (
+                        <>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); swiper?.slidePrev(); }}
+                                className={`absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-graphite shadow-lg hover:bg-pink-hot hover:text-white transition-all transform active:scale-90 border-2 border-gray-100 ${isPromoSection ? 'opacity-100' : 'opacity-0 group-hover/inner-swiper:opacity-100'}`}
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); swiper?.slideNext(); }}
+                                className={`absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-graphite shadow-lg hover:bg-pink-hot hover:text-white transition-all transform active:scale-90 border-2 border-gray-100 ${isPromoSection ? 'opacity-100' : 'opacity-0 group-hover/inner-swiper:opacity-100'}`}
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        </>
+                    )}
+                </>
+            ) : (
+                <img
+                    src={storageUrl(item.image) || ''}
+                    alt={item.name}
+                    className="w-full h-full object-cover transform group-hover/card:scale-105 transition duration-700"
+                />
+            )}
+        </div>
+    );
+};
+
+// CustomLogo removed as it's now internal to Navbar/Footer
+
+interface DbSubcategory {
+    id: number;
+    category_id: number;
+    name: string;
+    slug: string;
+}
+
+interface DbCategory {
+    id: number;
+    name: string;
+    slug: string;
+    subcategories?: DbSubcategory[];
+}
+
+interface DisplayItem {
+    key: string;
+    productId: number;
+    name: string;
+    variantName?: string;
+    description: string;
+    price: number;
+    image: string | null;
+    category_id?: number;
+    subcategory_id?: number;
+    category?: string;
+    is_promo?: boolean;
+    is_combo?: boolean;
+    stock?: number;
+    brand?: string;
+    subcategory?: string;
+    images?: string[];
+    attribute_id?: number;
+    attribute_value_id?: number;
+}
+
 
 export default function Home() {
     const [products, setProducts] = useState<Product[]>([]);
+    const [dbCategories, setDbCategories] = useState<DbCategory[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [selectedBrand, setSelectedBrand] = useState<string>('all');
-    const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
-    const [showMapModal, setShowMapModal] = useState(false);
+    const [selectedDbCategoryId, setSelectedDbCategoryId] = useState<number | null>(null);
+    const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number | 'all'>('all');
+    const [searchQuery, setSearchQuery] = useState<string>('');
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isClientMenuOpen, setIsClientMenuOpen] = useState(false);
     const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
 
-    const { addToCart, cartCount } = useCart();
-    const { user, logout } = useAuth();
+    const { addToCart } = useCart();
 
-    const handleAddToCart = async (productId: number) => {
+    const handleAddToCart = async (item: DisplayItem) => {
         try {
-            await addToCart(productId, 1);
+            let itemVariants: any[] = [];
+            if (item.attribute_id && item.attribute_value_id) {
+                const parts = item.variantName?.split(': ') || [];
+                itemVariants = [{
+                    option: parts[0] || 'Opción',
+                    value: parts[1] || item.variantName || 'Selección',
+                    priceDelta: 0
+                }];
+            }
+            await addToCart(item.productId, 1, item.price, itemVariants);
             toast.success('¡Producto agregado al carrito!');
         } catch (error) {
             toast.error('Error al agregar producto');
         }
     };
 
+    const handleRedirectToProduct = (item: DisplayItem) => {
+        // 1. Change to 'Todo' filter to show the grid
+        setSelectedCategory('all');
+
+        // 2. Clear other filters but keep search for the specific item
+        setSelectedDbCategoryId(null);
+        setSelectedSubcategoryId('all');
+        setSearchQuery(item.name);
+
+        // 3. Scroll to the products section with a clearer ID
+        setTimeout(() => {
+            const section = document.getElementById('filtros-home');
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 300);
+    };
+
 
     useEffect(() => {
         fetchProducts();
+        fetchCategories();
         loadHeroBanners();
     }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await api.get('/categories-public');
+            setDbCategories(response.data);
+            // Default to first category if available and not promos
+            if (response.data.length > 0) {
+                const hasPromos = products.some(p => p.is_promo || p.is_combo);
+                if (!hasPromos) {
+                    setSelectedCategory(`cat-${response.data[0].id}`);
+                }
+            }
+        } catch {
+            console.log('No categories');
+        }
+    };
 
     const fetchProducts = async () => {
         try {
             const response = await api.get('/products');
-            setProducts(response.data);
+            const prods = response.data.map((p: any) => ({
+                ...p,
+                // When the API uses eager loading, `category` is the relation object
+                category_obj: typeof p.category === 'object' && p.category ? p.category : null,
+                // Keep category as string for backward compat
+                category: typeof p.category === 'string' ? p.category : (p.category?.slug || p.category?.name || null),
+            }));
+            setProducts(prods);
         } catch {
             console.log('No products');
         }
@@ -135,6 +310,108 @@ export default function Home() {
         { name: 'Fragancias', desc: 'Esencias y aromas únicos' },
     ];
 
+    const storageUrl = (path: string | null | undefined) => {
+        if (!path) return null;
+        const base = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace('/api', '');
+        return `${base}/storage/${path}`;
+    };
+
+    const getProductImages = (imagesData: any): string[] => {
+        if (!imagesData) return [];
+        if (Array.isArray(imagesData)) return imagesData;
+        try {
+            const parsed = typeof imagesData === 'string' ? JSON.parse(imagesData) : imagesData;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    };
+
+    // Build display items: expand products with variants into individual cards
+
+    const displayItems: DisplayItem[] = useMemo(() => {
+        return products.flatMap(product => {
+            const attrs = product.attribute_values || [];
+            if (attrs.length > 0) {
+                // Each variant becomes its own display card
+                return attrs.map(av => ({
+                    key: `${product.id}-var-${av.id}`,
+                    productId: product.id,
+                    name: product.name,
+                    variantName: av.attribute ? `${av.attribute.name}: ${av.name}` : av.name,
+                    description: product.description,
+                    price: av.pivot?.price_delta || product.price,
+                    image: storageUrl(av.pivot?.image || av.image) || storageUrl(product.image),
+                    category_id: product.category_id,
+                    subcategory_id: product.subcategory_id,
+                    category: product.category,
+                    is_promo: product.is_promo,
+                    is_combo: product.is_combo,
+                    stock: av.pivot?.stock ?? 0,
+                    brand: product.brand,
+                    subcategory: product.subcategory,
+                    images: getProductImages(product.images),
+                    attribute_id: av.attribute_id ? Number(av.attribute_id) : (av.attribute?.id ? Number(av.attribute.id) : undefined),
+                    attribute_value_id: av.id ? Number(av.id) : undefined
+                }));
+            }
+            // No variants — show as single item
+            return [{
+                key: `prod-${product.id}`,
+                productId: product.id,
+                name: product.name,
+                description: product.description,
+                price: product.price,
+                image: storageUrl(product.image),
+                category_id: product.category_id,
+                subcategory_id: product.subcategory_id,
+                category: product.category,
+                is_promo: product.is_promo,
+                is_combo: product.is_combo,
+                stock: product.stock,
+                brand: product.brand,
+                subcategory: product.subcategory,
+                images: getProductImages(product.images),
+            }];
+        });
+    }, [products]);
+
+    const matchesSearch = (item: DisplayItem, query: string) => {
+        if (!query) return true;
+        const q = query.toLowerCase();
+        return item.name.toLowerCase().includes(q) ||
+            item.description?.toLowerCase().includes(q) ||
+            item.variantName?.toLowerCase().includes(q);
+    };
+
+    const promoItems = useMemo(() => {
+        return displayItems.filter(item => (item.is_promo || item.is_combo) && matchesSearch(item, searchQuery));
+    }, [displayItems, searchQuery]);
+
+    const filteredDisplayItems = useMemo(() => {
+        return displayItems.filter(item => {
+            // 1. Search Query Check - ALWAYS APPLY
+            if (!matchesSearch(item, searchQuery)) return false;
+
+            // 2. Category Filter
+            // Only apply category/subcategory filters if selectedCategory is not 'all'
+            // and the item is not a promo (promos are handled separately)
+            if (selectedCategory !== 'all' && !(item.is_promo || item.is_combo)) {
+                if (selectedDbCategoryId && Number(item.category_id) !== Number(selectedDbCategoryId)) return false;
+                if (selectedSubcategoryId !== 'all' && Number(item.subcategory_id) !== Number(selectedSubcategoryId)) return false;
+            }
+
+            // Exclude promo items from the main filtered list if they are not being searched for specifically
+            // and if a category filter is active (to prevent promos from showing up in specific category lists unless they match the category)
+            // If no category filter is active, promos should still be excluded from the main list as they have their own section.
+            if ((item.is_promo || item.is_combo) && !searchQuery) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [displayItems, selectedCategory, selectedDbCategoryId, selectedSubcategoryId, searchQuery]);
+
 
     return (
         <div className="min-h-screen bg-white text-graphite font-sans selection:bg-pink-hot selection:text-white">
@@ -143,160 +420,7 @@ export default function Home() {
                 Envíos a todo el país 🇨🇴 | ¡Pregunta por nuestra Promo del mes!
             </div>
 
-            {/* Navigation */}
-            <nav className="border-b-4 border-graphite py-10 max-md:py-6 px-6 md:px-12 sticky top-0 bg-white/95 backdrop-blur-sm z-50">
-                <div className="max-w-360 mx-auto flex justify-between items-center">
-                    <Link to="/" className="group">
-                        <div className="flex items-center gap-4">
-                            <CustomLogo className="w-20 h- group-hover:rotate-12 transition-transform duration-300 max-md:w-14 max-md:h-14" />
-                            <div className="flex flex-col">
-                                <span className="text-3xl max-md:text-xl font-black tracking-tighter text-graphite leading-none">
-                                    ENTRE LANAS
-                                </span>
-                                <span className="text-2xl max-md:text-lg font-bold tracking-widest text-pink-hot leading-none">
-                                    Y FRAGANCIAS
-                                </span>
-                            </div>
-                        </div>
-                    </Link>
-
-                    {!user && (
-                        <div className="md:hidden flex items-center">
-                            <Link
-                                to="/login"
-                                className="px-5 py-2 bg-pink-hot text-white font-black uppercase tracking-wider rounded-xl border-2 border-graphite shadow-[3px_3px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-xs"
-                            >
-                                Ingresar
-                            </Link>
-                        </div>
-                    )}
-
-                    {user?.role === 'admin' && (
-                        <div className="md:hidden flex items-center gap-3 relative">
-                            <button
-                                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-                                className="px-4 py-2 bg-pink-hot text-white font-black uppercase tracking-wider rounded-xl border-2 border-graphite shadow-[3px_3px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-[10px]"
-                            >
-                                Opciones
-                            </button>
-                            <button
-                                onClick={logout}
-                                className="px-3 py-2 border-2 border-red-400 text-red-500 font-black uppercase tracking-wider rounded-xl text-[10px]"
-                            >
-                                Salir
-                            </button>
-                        </div>
-                    )}
-
-                    {user?.role === 'client' && (
-                        <div className="md:hidden flex items-center gap-3 relative">
-                            <button
-                                onClick={() => setIsClientMenuOpen((prev) => !prev)}
-                                className="px-4 py-2 bg-pink-hot text-white font-black uppercase tracking-wider rounded-xl border-2 border-graphite shadow-[3px_3px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-[10px]"
-                            >
-                                Opciones
-                            </button>
-                            <button
-                                onClick={() => setIsCartOpen(true)}
-                                className="relative p-2 text-graphite hover:text-pink-hot transition"
-                            >
-                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                {cartCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-pink-hot text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
-                                        {cartCount}
-                                    </span>
-                                )}
-                            </button>
-                        </div>
-                    )}
-
-                    <div className="hidden md:flex gap-8 items-center">
-                        <a href="#productos" className="text-sm font-bold text-graphite hover:text-pink-hot transition uppercase tracking-wider">Productos</a>
-                        <a href="#contacto" className="text-sm font-bold text-graphite hover:text-pink-hot transition uppercase tracking-wider">Contacto</a>
-
-                        {user ? (
-                            <div className="flex items-center gap-6">
-                                {user.role === 'admin' ? (
-                                    <Link to="/admin/dashboard" className="text-sm font-bold text-pink-hot hover:text-graphite uppercase tracking-wider border-2 border-pink-hot px-4 py-1 rounded-full transition-colors">
-                                        Ir al Panel
-                                    </Link>
-                                ) : (
-                                    <Link to="/my-orders" className="text-sm font-bold text-gray-500 hover:text-pink-hot uppercase tracking-wider">
-                                        Mis Pedidos
-                                    </Link>
-                                )}
-
-                                <span className="text-sm font-bold text-graphite uppercase tracking-wider">Hola, {user.name.split(' ')[0]}</span>
-
-                                {/* Cart Button - Hide for admin? optional but safer to leave or hide. Typically admins don't shop. Let's hide cart for admin to be cleaner based on "client panel" complaint */}
-                                {user.role !== 'admin' && (
-                                    <button
-                                        onClick={() => setIsCartOpen(true)}
-                                        className="relative p-2 text-graphite hover:text-pink-hot transition"
-                                    >
-                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                        {cartCount > 0 && (
-                                            <span className="absolute -top-1 -right-1 bg-pink-hot text-white text-xs font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
-                                                {cartCount}
-                                            </span>
-                                        )}
-                                    </button>
-                                )}
-
-                                {/* Logout Button */}
-                                <button
-                                    onClick={logout}
-                                    className="text-sm font-bold text-red-500 hover:text-red-700 uppercase tracking-wider border-2 border-red-100 hover:border-red-500 rounded-full px-4 py-1 transition-all"
-                                >
-                                    Salir
-                                </button>
-                            </div>
-                        ) : (
-                            <Link to="/login" className="px-10 py-4 bg-pink-hot text-white font-black uppercase tracking-wider rounded-xl hover:bg-graphite transition-all border-4 border-graphite shadow-[4px_4px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]">
-                                Ingresar
-                            </Link>
-                        )}
-                    </div>
-                </div>
-
-                {user?.role === 'admin' && isMobileMenuOpen && (
-                    <div className="md:hidden absolute right-0 top-full mt-2 w-36 border-2 border-graphite rounded-lg bg-white shadow-[4px_4px_0px_0px_rgba(51,51,51,1)] px-2 py-2">
-                        <div className="flex flex-col items-center gap-2 text-[9px] font-black uppercase tracking-widest text-graphite text-center">
-                            <a href="#productos" className="hover:text-pink-hot">Productos</a>
-                            <a href="#contacto" className="hover:text-pink-hot">Contacto</a>
-                            <Link to="/admin/dashboard" className="hover:text-pink-hot">
-                                Volver al panel
-                            </Link>
-                            <button
-                                type="button"
-                                onClick={logout}
-                                className="mt-1 text-xs text-red-500 hover:text-red-600"
-                            >
-                                Cerrar sesión
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {user?.role === 'client' && isClientMenuOpen && (
-                    <div className="md:hidden absolute right-0 top-full mt-2 w-36 border-2 border-graphite rounded-lg bg-white shadow-[4px_4px_0px_0px_rgba(51,51,51,1)] px-2 py-2">
-                        <div className="flex flex-col items-center gap-2 text-[9px] font-black uppercase tracking-widest text-graphite text-center">
-                            <a href="#productos" className="hover:text-pink-hot">Productos</a>
-                            <a href="#contacto" className="hover:text-pink-hot">Contacto</a>
-                            <Link to="/my-orders" className="hover:text-pink-hot">
-                                Mis Pedidos
-                            </Link>
-                            <button
-                                type="button"
-                                onClick={logout}
-                                className="mt-1 text-xs text-red-500 hover:text-red-600"
-                            >
-                                Cerrar sesión
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </nav>
+            <Navbar onOpenCart={() => setIsCartOpen(true)} />
 
             {/* Hero Carousel */}
             <section className="border-b-8 border-graphite">
@@ -333,13 +457,13 @@ export default function Home() {
                                     <div className="flex flex-col md:flex-row items-center gap-6 max-md:gap-3">
                                         <a
                                             href="#productos"
-                                            className="inline-flex items-center justify-center px-20 py-7 max-md:px-7 max-md:py-3 rounded-full font-black uppercase tracking-widest text-xl max-md:text-xs border-4 border-graphite shadow-[10px_10px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[6px] hover:translate-y-[6px] transition-all cursor-pointer bg-white text-graphite transform hover:scale-105 min-w-[280px] max-md:min-w-[170px]"
+                                            className="inline-flex items-center justify-center px-12 py-5 md:px-20 md:py-7 rounded-full font-black uppercase tracking-widest text-sm md:text-xl border-4 border-graphite shadow-[6px_6px_0px_0px_rgba(51,51,51,1)] md:shadow-[10px_10px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[6px] hover:translate-y-[6px] transition-all cursor-pointer bg-white text-graphite transform hover:scale-105 min-w-[200px] md:min-w-[280px]"
                                         >
                                             {banner.ctaText}
                                         </a>
                                         <a
                                             href="#promociones"
-                                            className="inline-flex items-center justify-center px-16 py-6 max-md:px-6 max-md:py-3 rounded-full font-black uppercase tracking-widest text-lg max-md:text-[10px] border-4 border-white/70 text-white hover:bg-white/20 transition-all cursor-pointer min-w-[220px] max-md:min-w-[150px]"
+                                            className="inline-flex items-center justify-center px-10 py-4 md:px-16 md:py-6 rounded-full font-black uppercase tracking-widest text-xs md:text-lg border-4 border-white/70 text-white hover:bg-white/20 transition-all cursor-pointer min-w-[180px] md:min-w-[220px]"
                                         >
                                             {banner.promoText}
                                         </a>
@@ -366,239 +490,315 @@ export default function Home() {
             </section>
 
             {/* Products */}
-            <section id="productos" className="pt-[100px] pb-32 lg:pt-64 lg:pb-64 max-md:pt-32 max-md:pb-20 px-6 md:px-12 bg-teal text-white w-full flex flex-col items-center">
-                <div className="max-w-360 w-full flex flex-col items-center">
-                    <div className="text-center flex flex-col items-center mb-32 max-md:mb-16">
+            <section id="productos" className="pt-[80px] pb-32 md:pt-[120px] md:pb-48 lg:pt-80 lg:pb-80 max-md:pt-24 max-md:pb-24 px-4 md:px-24 lg:px-32 bg-teal text-white w-full flex flex-col items-center overflow-hidden">
+                <div className="max-w-7xl w-full flex flex-col items-center">
+                    <div className="text-center flex flex-col items-center mb-0">
                         <span className="bg-lime text-graphite px-8 py-3 max-md:px-5 max-md:py-2 rounded-2xl text-xl max-md:text-sm font-black uppercase tracking-widest mb-20 max-md:mb-8 inline-block border-4 border-graphite shadow-[6px_6px_0px_0px_rgba(51,51,51,0.5)]">Nuestros Favoritos</span>
-                        <h2 className="text-7xl md:text-8xl max-md:text-4xl font-black mb-32 max-md:mb-12 tracking-tighter text-center leading-none">PRODUCTOS<br /><span className="text-pink-hot">DESTACADOS</span></h2>
+                        <h2 className="text-7xl md:text-8xl max-md:text-4xl font-black mb-0 tracking-tighter text-center leading-none">PRODUCTOS<br /><span className="text-pink-hot">DESTACADOS</span></h2>
                     </div>
 
-                    {/* Filter Controls */}
-                    <div className="w-full max-w-4xl mb-96 max-md:mb-16 flex flex-col items-center gap-12 max-md:gap-6">
-                        {/* Main Category Tabs */}
-                        <div className="flex flex-wrap justify-center items-stretch gap-10 max-md:gap-4">
-                            <button
-                                onClick={() => { setSelectedCategory('all'); setSelectedBrand('all'); setSelectedSubcategory('all'); }}
-                                className={`inline-flex items-center justify-center px-10 py-4 max-md:px-5 max-md:py-2 rounded-full font-black uppercase tracking-wider transition-all border-4 text-base max-md:text-[10px] min-w-[160px] max-md:min-w-[110px] min-h-[48px] ${selectedCategory === 'all'
-                                    ? 'bg-white text-graphite border-graphite shadow-[6px_6px_0px_0px_rgba(51,51,51,1)] transform -translate-y-1'
-                                    : 'bg-teal-dark border-white/30 text-white/80 hover:bg-white/10 hover:text-white'}`}
-                            >
-                                Todos
-                            </button>
-                            {products.some((product) => product.is_promo || product.is_combo) && (
-                                <button
-                                    onClick={() => { setSelectedCategory('promos'); setSelectedBrand('all'); setSelectedSubcategory('all'); }}
-                                    className={`inline-flex items-center justify-center px-10 py-4 max-md:px-5 max-md:py-2 rounded-full font-black uppercase tracking-wider transition-all border-4 text-base max-md:text-[10px] min-w-[160px] max-md:min-w-[110px] min-h-[48px] ${selectedCategory === 'promos'
-                                        ? 'bg-white text-pink-hot border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,0.5)] transform -translate-y-1'
-                                        : 'bg-pink-hot/40 border-white/40 text-white hover:bg-pink-hot/60 hover:text-white'}`}
-                                >
-                                    Promociones
-                                </button>
-                            )}
-                            <button
-                                onClick={() => { setSelectedCategory('telas'); setSelectedBrand('all'); setSelectedSubcategory('all'); }}
-                                className={`inline-flex items-center justify-center px-10 py-4 max-md:px-5 max-md:py-2 rounded-full font-black uppercase tracking-wider transition-all border-4 text-base max-md:text-[10px] min-w-[160px] max-md:min-w-[110px] min-h-[48px] ${selectedCategory === 'telas'
-                                    ? 'bg-pink-hot text-white border-white shadow-[6px_6px_0px_0px_rgba(255,255,255,0.5)] transform -translate-y-1'
-                                    : 'bg-teal-dark border-white/30 text-white/80 hover:bg-pink-hot/50 hover:text-white'}`}
-                            >
-                                Telas
-                            </button>
-                            <button
-                                onClick={() => { setSelectedCategory('perfumeria'); setSelectedBrand('all'); setSelectedSubcategory('all'); }}
-                                className={`inline-flex items-center justify-center px-10 py-4 max-md:px-5 max-md:py-2 rounded-full font-black uppercase tracking-wider transition-all border-4 text-base max-md:text-[10px] min-w-[160px] max-md:min-w-[110px] min-h-[48px] ${selectedCategory === 'perfumeria'
-                                    ? 'bg-lime text-graphite border-graphite shadow-[6px_6px_0px_0px_rgba(51,51,51,1)] transform -translate-y-1'
-                                    : 'bg-teal-dark border-white/30 text-white/80 hover:bg-lime/50 hover:text-white'}`}
-                            >
-                                Perfumería
-                            </button>
+                    {/* REDUCED SPACER ON MOBILE */}
+                    <div className="w-full h-8 md:h-32 lg:h-12"></div>
+
+                    {/* Main Layout: Hierarchical Pill Filters */}
+                    {/* Main Layout: Horizontal Dropdown Filters */}
+                    <div className="w-full flex flex-col gap-12 items-center">
+
+                        {/* Search Bar Row - COMPACT ON MOBILE */}
+                        <div className="w-full max-w-xl group/search relative px-4 md:px-10 lg:px-20">
+                            <div className={`w-full flex items-center bg-white/20 border-4 md:border-[6px] border-white/60 rounded-2xl md:rounded-3xl px-4 py-2 md:px-8 md:py-4 transition-all focus-within:bg-white focus-within:border-lime focus-within:shadow-2xl group-hover/search:border-white/80`}>
+                                <svg className={`w-5 h-5 md:w-7 md:h-7 mr-3 md:mr-4 transition-colors ${searchQuery ? 'text-lime' : 'text-white/80'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="BUSCAR PRODUCTOS..."
+                                    className="bg-transparent border-none outline-none w-full text-sm md:text-xl font-black uppercase tracking-widest text-white focus:text-graphite placeholder:text-white/70 transition-colors"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => setSearchQuery('')}
+                                        className="ml-2 w-6 h-6 md:w-8 md:h-8 rounded-full bg-graphite/10 flex items-center justify-center hover:bg-pink-hot hover:text-white transition-all text-graphite/40"
+                                    >
+                                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Perfumery Specific Filters */}
-                        {selectedCategory === 'perfumeria' && (
-                            <div className="flex flex-wrap justify-center gap-6 max-md:gap-4 animate-fadeIn bg-white/10 p-6 max-md:p-4 rounded-3xl backdrop-blur-sm border-4 border-white/20">
-                                {/* Brand Filter */}
-                                <select
-                                    value={selectedBrand}
-                                    onChange={(e) => setSelectedBrand(e.target.value)}
-                                    className="px-6 py-3 max-md:px-4 max-md:py-2 rounded-2xl bg-white text-graphite font-bold text-lg max-md:text-sm focus:outline-none focus:ring-4 focus:ring-lime border-r-12 border-transparent cursor-pointer shadow-lg"
-                                >
-                                    <option value="all">Todas las Marcas</option>
-                                    {[...new Set(products.filter(p => p.category === 'perfumeria' && p.brand).map(p => p.brand))].map(brand => (
-                                        <option key={brand} value={brand}>{brand}</option>
-                                    ))}
-                                </select>
+                        {/* Promotions Area - NOW ALWAYS VISIBLE UNLESS SEARCHING NO PROMOS */}
+                        {promoItems.length > 0 && (
+                            <div id="promociones" className="w-full py-0 text-center flex flex-col items-center overflow-hidden">
+                                <div className="max-w-4xl w-full px-6 text-center">
+                                    <h3 className="text-3xl md:text-6xl font-black text-white mb-0 uppercase tracking-tighter leading-none">
+                                        ✨ OFERTAS QUE<br /><span className="text-lime text-2xl md:text-5xl">ENAMORAN</span>
+                                    </h3>
+                                </div>
 
-                                {/* Subcategory Filter */}
-                                <select
-                                    value={selectedSubcategory}
-                                    onChange={(e) => setSelectedSubcategory(e.target.value)}
-                                    className="px-6 py-3 max-md:px-4 max-md:py-2 rounded-2xl bg-white text-graphite font-bold text-lg max-md:text-sm focus:outline-none focus:ring-4 focus:ring-lime border-r-12 border-transparent cursor-pointer shadow-lg"
-                                >
-                                    <option value="all">Todas las Categorías</option>
-                                    {[...new Set(products.filter(p => p.category === 'perfumeria' && p.subcategory).map(p => p.subcategory))].map(sub => (
-                                        <option key={sub} value={sub}>{sub}</option>
-                                    ))}
-                                </select>
+                                {/* PHYSICAL SPACER - TAILWIND V4 COMPATIBLE */}
+                                <div className="w-full h-12 md:h-24"></div>
+
+                                <div className="w-full relative group/swiper max-w-[1400px]">
+                                    <Swiper
+                                        modules={[Autoplay, Navigation, Pagination]}
+                                        spaceBetween={30}
+                                        slidesPerView={1}
+                                        centeredSlides={true}
+                                        autoplay={{ delay: 6000, disableOnInteraction: false }}
+                                        navigation={true}
+                                        pagination={{ clickable: true }}
+                                        breakpoints={{
+                                            1024: { slidesPerView: 1.2, spaceBetween: 50 }
+                                        }}
+                                        className="promos-swiper !pb-24 !px-4"
+                                    >
+                                        {promoItems.map((item, index) => (
+                                            <SwiperSlide key={item.key}>
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 30 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: index * 0.1 }}
+                                                    className="bg-white rounded-[2rem] md:rounded-[3rem] p-6 md:p-12 shadow-2xl border-4 border-transparent hover:border-lime group flex flex-col md:flex-row gap-8 md:gap-14 items-center justify-center transition-all duration-500 mx-auto max-w-[95%] md:max-w-none min-h-[420px] md:min-h-[420px]"
+                                                >
+                                                    <div className="w-full md:w-[50%] aspect-square md:aspect-[4/3] bg-white rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden border-2 border-gray-100 relative shine-effect shrink-0">
+                                                        <ProductImageCarousel item={item} isPromoSection={true} />
+                                                        <div className="absolute top-4 left-4 z-30 pointer-events-none">
+                                                            <span className="bg-pink-hot text-white text-[10px] md:text-xs font-black px-4 py-1.5 rounded-full border-2 border-white shadow-lg animate-pulse uppercase tracking-widest">OFERTA</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="w-full md:w-[40%] text-center md:text-left min-w-0 flex flex-col justify-center py-2 md:py-4">
+                                                        <span className="text-pink-hot font-black text-[10px] md:text-[11px] uppercase tracking-[0.2em] mb-2 block">PROMOCIÓN DEL MES</span>
+                                                        <h3 className="text-lg md:text-xl lg:text-3xl font-black text-graphite mb-3 uppercase tracking-tight leading-tight group-hover:text-pink-hot transition-colors break-words max-w-full md:max-w-[280px] lg:max-w-md">{item.name}</h3>
+                                                        <p className="text-gray-500 text-[11px] md:text-xs font-medium mb-4 md:mb-6 line-clamp-3 md:line-clamp-4 leading-relaxed max-w-full md:max-w-[240px] lg:max-w-sm">{item.description}</p>
+
+                                                        <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-5 mt-auto border-t-2 border-gray-50 pt-4 md:pt-5">
+                                                            <div className="flex flex-col items-center md:items-start shrink-0">
+                                                                <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest line-through">Antes $ {Math.round(item.price * 1.2).toLocaleString()}</span>
+                                                                <span className="text-xl md:text-2xl lg:text-3xl font-black text-graphite leading-none">$ {Number(item.price).toLocaleString()}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => handleRedirectToProduct(item)}
+                                                                className="w-full md:w-auto px-5 py-2.5 md:px-6 md:py-3 bg-lime text-graphite rounded-xl font-black uppercase tracking-widest text-[10px] md:text-[11px] border-2 md:border-4 border-graphite shadow-[3px_3px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-300 btn-shine-effect shrink-0"
+                                                            >
+                                                                ¡LO QUIERO!
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            </SwiperSlide>
+                                        ))}
+                                    </Swiper>
+                                </div>
                             </div>
                         )}
-                    </div>
 
-                    <div id="promociones" className="w-full"></div>
-                    {/* Promociones */}
-                    {products.some((product) => product.is_promo || product.is_combo) && (
-                        <div className="w-full mb-24 max-md:mb-14">
-                            <div className="flex flex-col items-center mb-12 max-md:mb-8">
-                                <span className="bg-white text-pink-hot px-6 py-2 rounded-2xl text-sm font-black uppercase tracking-widest border-4 border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.4)]">Promociones</span>
-                                <h3 className="text-4xl max-md:text-2xl font-black text-white mt-6 text-center">Combos y productos en promo</h3>
-                            </div>
-                            <div className="grid grid-cols-2 max-md:grid-cols-2 gap-8 max-md:gap-4 lg:grid lg:grid-cols-5 lg:gap-12 w-full px-6 max-md:px-4 lg:px-0">
-                                {products
-                                    .filter((product) => product.is_promo || product.is_combo)
-                                    .map((product) => (
-                                        <div
-                                            key={`promo-${product.id}`}
-                                            className="bg-white rounded-3xl lg:rounded-4xl p-6 lg:p-8 max-md:p-3 hover:transform hover:-translate-y-3 transition-all duration-300 group cursor-pointer border-4 lg:border-6 border-transparent hover:border-pink-hot shadow-lg lg:shadow-xl text-center flex flex-col w-full max-w-full"
-                                        >
-                                            <div className="relative aspect-square bg-grey-light rounded-2xl lg:rounded-3xl mb-2 lg:mb-4 max-md:mb-2 overflow-hidden flex items-center justify-center border-2 lg:border-4 border-gray-100 w-full group-hover:border-pink-hot transition-all">
-                                                {product.image ? (
-                                                    <img
-                                                        src={`${(import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace('/api', '')}/storage/${product.image}`}
-                                                        alt={product.name}
-                                                        className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500"
-                                                    />
-                                                ) : (
-                                                    <svg className="w-12 h-12 lg:w-24 lg:h-24 text-gray-300 group-hover:text-pink-hot transition duration-300 transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                )}
-                                                <div className="absolute top-2 left-2 flex flex-col gap-2">
-                                                    {product.is_promo && (
-                                                        <span className="bg-pink-hot text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border-2 border-white">Promo</span>
-                                                    )}
-                                                    {product.is_combo && (
-                                                        <span className="bg-teal text-white text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full border-2 border-white">Combo</span>
-                                                    )}
-                                                </div>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleAddToCart(product.id);
-                                                    }}
-                                                    className="absolute bottom-2 right-2 lg:bottom-4 lg:right-4 w-10 h-10 lg:w-12 lg:h-12 max-md:w-9 max-md:h-9 bg-lime text-graphite rounded-full flex items-center justify-center border-2 lg:border-4 border-graphite shadow-[2px_2px_0px_0px_rgba(51,51,51,1)] lg:shadow-[4px_4px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px] transition duration-300 font-bold z-10"
-                                                >
-                                                    <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
-                                                </button>
-                                            </div>
-                                            <div className="px-1.5 lg:px-3 pb-1 lg:pb-3 max-md:px-1 max-md:pb-0 grow flex flex-col justify-between">
-                                                <div>
-                                                    <h3 className="font-extrabold text-graphite mb-1 lg:mb-2 text-sm max-md:text-sm lg:text-xl group-hover:text-pink-hot transition leading-tight line-clamp-2">{product.name}</h3>
-                                                    <p className="text-gray-500 mb-2 lg:mb-4 font-medium text-xs max-md:text-[11px] lg:text-base line-clamp-2 leading-snug">{product.description}</p>
-                                                </div>
-                                                <div className="flex justify-center items-center gap-2 border-t-2 lg:border-t-4 border-gray-100 pt-2 lg:pt-4 max-md:pt-1">
-                                                    <span className="text-lg max-md:text-lg lg:text-3xl font-black text-graphite">
-                                                        ${Number(product.price).toLocaleString()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
-                    )}
+                        {/* Filters & Search Bar Container */}
+                        <div
+                            id="filtros-home"
+                            className="w-full relative px-4 md:px-10 lg:px-20 flex flex-col gap-8 md:gap-12 items-center"
+                            style={{
+                                maxWidth: '1400px',
+                                marginInline: 'auto'
+                            }}
+                        >
+                            {/* Filters Buttons Row - ALWAYS VISIBLE BELOW PROMOS */}
+                            <div className="bg-white/5 backdrop-blur-md border border-white/10 p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] shadow-2xl flex flex-wrap items-center justify-center gap-2 md:gap-3 relative z-50">
 
-                    {/* Product Grid */}
-                    <div style={{ marginTop: '50px' }} className="grid grid-cols-2 max-md:grid-cols-2 gap-8 max-md:gap-4 lg:grid lg:grid-cols-5 lg:gap-12 w-full px-6 max-md:px-4 lg:px-0">
-                        {products
-                            .filter(product => {
-                                if (selectedCategory === 'promos' && !(product.is_promo || product.is_combo)) return false;
-                                if (selectedCategory !== 'all' && selectedCategory !== 'promos' && product.category !== selectedCategory) return false;
-                                if (selectedCategory === 'perfumeria') {
-                                    if (selectedBrand !== 'all' && product.brand !== selectedBrand) return false;
-                                    if (selectedSubcategory !== 'all' && product.subcategory !== selectedSubcategory) return false;
-                                }
-                                return true;
-                            })
-                            .length > 0 ? (
-                            products
-                                .filter(product => {
-                                    if (selectedCategory === 'promos' && !(product.is_promo || product.is_combo)) return false;
-                                    if (selectedCategory !== 'all' && selectedCategory !== 'promos' && product.category !== selectedCategory) return false;
-                                    if (selectedCategory === 'perfumeria') {
-                                        if (selectedBrand !== 'all' && product.brand !== selectedBrand) return false;
-                                        if (selectedSubcategory !== 'all' && product.subcategory !== selectedSubcategory) return false;
-                                    }
-                                    return true;
-                                })
-                                .map((product) => (
-                                    <div
-                                        key={product.id}
-                                        className="bg-white rounded-3xl lg:rounded-4xl p-6 lg:p-8 max-md:p-3 hover:transform hover:-translate-y-3 transition-all duration-300 group cursor-pointer border-4 lg:border-6 border-transparent hover:border-lime shadow-lg lg:shadow-xl text-center flex flex-col w-full max-w-full"
+                                {/* Absolute Small Clear Button - NOW INSET MORE */}
+                                {(selectedDbCategoryId || selectedSubcategoryId !== 'all' || searchQuery) && (
+                                    <button
+                                        onClick={() => {
+                                            setSelectedCategory('all');
+                                            setSelectedDbCategoryId(null);
+                                            setSelectedSubcategoryId('all');
+                                            setSearchQuery('');
+                                        }}
+                                        className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-pink-hot border-2 border-white text-white shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center z-[70] group"
+                                        title="Limpiar filtros"
                                     >
-                                        <div className="relative aspect-square bg-grey-light rounded-2xl lg:rounded-3xl mb-2 lg:mb-4 max-md:mb-2 overflow-hidden flex items-center justify-center border-2 lg:border-4 border-gray-100 w-full group-hover:border-lime transition-all">
-                                            {product.image ? (
-                                                <img
-                                                    src={`${(import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace('/api', '')}/storage/${product.image}`}
-                                                    alt={product.name}
-                                                    className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500"
-                                                />
-                                            ) : (
-                                                <svg className="w-12 h-12 lg:w-24 lg:h-24 text-gray-300 group-hover:text-pink-hot transition duration-300 transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                </svg>
-                                            )}
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleAddToCart(product.id);
-                                                }}
-                                                className="absolute bottom-2 right-2 lg:bottom-4 lg:right-4 w-10 h-10 lg:w-12 lg:h-12 max-md:w-9 max-md:h-9 bg-lime text-graphite rounded-full flex items-center justify-center border-2 lg:border-4 border-graphite shadow-[2px_2px_0px_0px_rgba(51,51,51,1)] lg:shadow-[4px_4px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px] transition duration-300 font-bold z-10"
-                                            >
-                                                <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
-                                            </button>
+                                        <svg className="w-4 h-4 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                )}
+
+                                {/* Dropdown: Categories */}
+                                <div className="relative group/dd flex-1 md:flex-initial min-w-[180px] md:min-w-[260px]">
+                                    <button className={`w-full px-5 py-5 md:px-14 md:py-7 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-between border-4 ${selectedDbCategoryId
+                                        ? 'bg-lime border-graphite text-graphite shadow-xl'
+                                        : 'bg-lime border-white text-graphite shadow-[0_0_30px_rgba(204,255,0,0.4)]'
+                                        }`}>
+                                        <div className="flex flex-col items-start text-left min-w-0">
+                                            <span className="text-sm md:text-xl truncate leading-none w-full text-center">
+                                                {selectedDbCategoryId ? dbCategories.find(c => Number(c.id) === Number(selectedDbCategoryId))?.name : 'Categorías 📦'}
+                                            </span>
                                         </div>
-                                        <div className="px-1.5 lg:px-3 pb-1 lg:pb-3 max-md:px-1 max-md:pb-0 grow flex flex-col justify-between">
-                                            <div>
-                                                <h3 className="font-extrabold text-graphite mb-1 lg:mb-2 text-sm max-md:text-sm lg:text-xl group-hover:text-pink-hot transition leading-tight line-clamp-2">{product.name}</h3>
-                                                <p className="text-gray-500 mb-2 lg:mb-4 font-medium text-xs max-md:text-[11px] lg:text-base line-clamp-2 leading-snug">{product.description}</p>
-                                            </div>
-                                            <div className="flex justify-center items-center gap-2 border-t-2 lg:border-t-4 border-gray-100 pt-2 lg:pt-4 max-md:pt-1">
-                                                <span className="text-lg max-md:text-lg lg:text-3xl font-black text-graphite">
-                                                    ${Number(product.price).toLocaleString()}
+                                        <svg className="w-4 h-4 md:w-5 md:h-5 ml-2 md:ml-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                                    </button>
+                                    <div className="absolute top-full left-0 mt-2 w-full bg-[#1a1a1a] border-2 border-white/10 rounded-xl overflow-hidden shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/dd:opacity-100 group-hover/dd:translate-y-0 group-hover/dd:pointer-events-auto transition-all duration-300 z-[60] max-h-60 overflow-y-auto">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedDbCategoryId(null);
+                                                setSelectedSubcategoryId('all');
+                                            }}
+                                            className="w-full text-left px-6 py-4 md:px-12 md:py-8 text-sm md:text-xl font-bold uppercase tracking-widest text-white/60 hover:bg-lime hover:text-graphite transition-colors"
+                                        >
+                                            Todo el Catálogo
+                                        </button>
+                                        {dbCategories.map(cat => (
+                                            <button
+                                                key={cat.id}
+                                                onClick={() => {
+                                                    setSelectedDbCategoryId(Number(cat.id));
+                                                    setSelectedSubcategoryId('all');
+                                                }}
+                                                className="w-full text-left px-6 py-4 md:px-12 md:py-8 text-sm md:text-xl font-bold uppercase tracking-widest text-white/60 hover:bg-lime hover:text-graphite transition-colors"
+                                            >
+                                                {cat.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Dropdown: Subcategories */}
+                                {selectedDbCategoryId && (
+                                    <div className="relative group/dd flex-1 md:flex-initial min-w-[120px] md:min-w-[180px]">
+                                        <button className={`w-full px-4 py-4 md:px-12 md:py-6 rounded-2xl font-black uppercase tracking-widest transition-all flex items-center justify-between border-4 ${selectedSubcategoryId !== 'all'
+                                            ? 'bg-teal-light border-white text-graphite shadow-xl'
+                                            : 'bg-white/5 border-white/20 text-white/50 hover:border-white/40 shadow-lg'
+                                            }`}>
+                                            <div className="flex flex-col items-start text-left min-w-0">
+                                                <span className="text-xs md:text-xl truncate leading-none w-full">
+                                                    {selectedSubcategoryId !== 'all' ? dbCategories.find(c => c.id === selectedDbCategoryId)?.subcategories?.find(s => s.id === selectedSubcategoryId)?.name : 'Subcat.'}
                                                 </span>
                                             </div>
+                                            <svg className="w-3 h-3 md:w-5 md:h-5 ml-2 md:ml-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                                        </button>
+                                        <div className="absolute top-full left-0 mt-2 w-full bg-[#1a1a1a] border-2 border-white/10 rounded-xl overflow-hidden shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover/dd:opacity-100 group-hover/dd:translate-y-0 group-hover/dd:pointer-events-auto transition-all duration-300 z-[60] max-h-96 overflow-y-auto">
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedSubcategoryId('all');
+                                                }}
+                                                className="w-full text-left px-6 py-4 md:px-12 md:py-8 text-sm md:text-xl font-bold uppercase tracking-widest text-white/60 hover:bg-teal-light hover:text-graphite transition-colors"
+                                            >
+                                                Ver Todo
+                                            </button>
+                                            {dbCategories.find(c => c.id === selectedDbCategoryId)?.subcategories?.map(sub => (
+                                                <button
+                                                    key={sub.id}
+                                                    onClick={() => {
+                                                        setSelectedSubcategoryId(sub.id);
+                                                    }}
+                                                    className="w-full text-left px-6 py-4 md:px-12 md:py-8 text-sm md:text-xl font-bold uppercase tracking-widest text-white/60 hover:bg-teal-light hover:text-graphite transition-colors"
+                                                >
+                                                    {sub.name}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
-                                ))
-                        ) : (
-                            <div className="col-span-full py-20 text-center">
-                                <p className="text-4xl max-md:text-xl font-black text-white/50 uppercase tracking-widest">Pronto agregaremos productos increíbles ✨</p>
+                                )}
                             </div>
+                        </div>
+
+                    </div>
+
+                    {/* LARGE VISIBLE SPACER - REDUCED ON MOBILE AS REQUESTED */}
+                    <div className="w-full h-12 md:h-24 lg:h-32"></div>
+
+                    {/* Product List Section - CENTERED ARCHITECTURE FOR PREMIUM FEEL */}
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-20 w-full px-4 md:px-10 lg:px-16 min-h-[400px]">
+                        {filteredDisplayItems.length === 0 ? (
+                            <div className="col-span-full py-20 text-center flex flex-col items-center justify-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <span className="text-7xl">🔍</span>
+                                <p className="text-3xl font-black text-white/70 uppercase tracking-widest">No hay productos en esta selección</p>
+                                <p className="text-lg font-bold text-white/40">Intenta cambiar los filtros para ver más opciones.</p>
+                            </div>
+                        ) : (
+                            <AnimatePresence mode="popLayout">
+                                {filteredDisplayItems.map((item, index) => (
+                                    <motion.div
+                                        layout
+                                        key={item.key}
+                                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                        transition={{
+                                            duration: 0.4,
+                                            delay: index * 0.05,
+                                            type: 'spring',
+                                            stiffness: 260,
+                                            damping: 20
+                                        }}
+                                        whileHover={{
+                                            y: -15,
+                                            scale: 1.05,
+                                            rotate: 1,
+                                            transition: {
+                                                type: "spring",
+                                                stiffness: 400,
+                                                damping: 10
+                                            }
+                                        }}
+                                        className="group"
+                                    >
+                                        <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] p-4 md:p-6 shadow-xl border-4 border-transparent hover:border-lime transition-all duration-500 flex flex-col h-full relative overflow-hidden group/card shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)]">
+                                            <div className="aspect-square bg-white rounded-2xl overflow-hidden mb-4 relative flex items-center justify-center border-2 border-gray-100 group-hover/card:border-lime/30 transition-colors">
+                                                <ProductImageCarousel item={item} />
+
+                                                {item.is_promo && (
+                                                    <div className="absolute top-3 left-3 z-30 pointer-events-none">
+                                                        <span className="bg-pink-hot text-white text-[10px] font-black px-3 py-1 rounded-full border-2 border-white shadow-lg uppercase tracking-wider animate-pulse">PROMO</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex flex-col flex-grow">
+                                                <h3 className="text-sm md:text-lg font-black text-graphite line-clamp-2 leading-tight mb-2 uppercase group-hover/card:text-pink-hot transition-colors">{item.name}</h3>
+                                                <p className="text-[10px] md:text-sm text-gray-500 font-bold uppercase tracking-widest mb-4 line-clamp-1">{item.brand || 'Tejenderas'}</p>
+
+                                                <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 pt-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-gray-400 font-black line-through uppercase tracking-tighter">Antes $ {Math.round(item.price * 1.2).toLocaleString()}</span>
+                                                        <span className="text-base md:text-2xl font-black text-graphite">$ {Number(item.price).toLocaleString()}</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleAddToCart(item)}
+                                                        className="w-10 h-10 md:w-14 md:h-14 bg-lime text-graphite rounded-xl flex items-center justify-center border-4 border-graphite shadow-[3px_3px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-300"
+                                                        title="Agregar al carrito"
+                                                    >
+                                                        <svg className="w-5 h-5 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         )}
                     </div>
                 </div>
             </section>
 
-            {/* SPACER 1: Between Products and Features */}
-            <div className="w-full h-48 max-md:h-16 lg:h-20  bg-teal"></div>
+            {/* SPACER: Visual separation before next section */}
+            <div className="w-full h-32 md:h-48 bg-teal border-b-8 border-graphite"></div>
 
             {/* Features */}
-            <section style={{ paddingTop: '50px' }} className="pb-56 lg:pb-64 max-md:pb-12 px-6 md:px-12 bg-lime w-full flex justify-center border-t-8 border-graphite/10">
-                <div className="max-w-360 w-full flex flex-col items-center">
-                    <div className="flex flex-wrap justify-center gap-32 max-md:gap-4 w-full">
+            <section className="py-24 max-md:py-12 px-6 md:px-12 bg-lime w-full flex justify-center">
+                <div className="max-w-7xl w-full flex flex-col items-center">
+                    <div className="flex flex-wrap justify-center gap-12 md:gap-24 w-full">
                         {[
                             { title: 'Envíos Nacionales', desc: 'A todo el país', icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4' },
                             { title: 'Pago Seguro', desc: 'Múltiples métodos', icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
                             { title: 'Calidad Premium', desc: 'Garantizada', icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 013.138-3.138z' },
                         ].map((f, i) => (
-                            <div key={i} className="flex flex-col items-center gap-10 max-md:gap-2 p-16 max-md:p-3 rounded-[2.5rem] border-4 border-graphite bg-white shadow-[12px_12px_0px_0px_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[6px] hover:translate-y-[6px] transition duration-200 text-center w-80 max-md:w-full max-w-full">
-                                <div className="w-24 h-24 max-md:w-10 max-md:h-10 bg-pink-hot text-white rounded-full flex items-center justify-center shrink-0 border-4 border-graphite font-black">
-                                    <svg className="w-12 h-12 max-md:w-5 max-md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div key={i} className="flex flex-col items-center gap-6 p-8 md:p-12 rounded-[2.5rem] border-4 border-graphite bg-white shadow-[12px_12px_0_0_rgba(51,51,51,1)] hover:shadow-none hover:translate-x-[6px] hover:translate-y-[6px] transition duration-200 text-center w-80 max-md:w-full">
+                                <div className="w-20 h-20 bg-pink-hot text-white rounded-full flex items-center justify-center shrink-0 border-4 border-graphite">
+                                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d={f.icon} />
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 className="font-black text-graphite text-3xl max-md:text-sm mb-1">{f.title}</h3>
-                                    <p className="text-gray-500 font-bold text-xl max-md:text-[11px]">{f.desc}</p>
+                                    <h3 className="font-black text-graphite text-xl md:text-2xl mb-1">{f.title}</h3>
+                                    <p className="text-gray-500 font-bold">{f.desc}</p>
                                 </div>
                             </div>
                         ))}
@@ -607,115 +807,12 @@ export default function Home() {
             </section>
 
             {/* SPACER 2: Between Features and Footer */}
-            <div className="w-full h-48 max-md:h-16 lg:h-20 bg-lime"></div>
+            <div className="w-full h-24 md:h-32 bg-lime"></div>
 
-            {/* Enhanced Footer */}
-            <footer id="contacto" className="bg-graphite text-white pt-32 lg:pt-48 mt-0 max-md:pt-16 max-md:pb-12 pb-24 overflow-hidden relative border-t-8 border-transparent">
-                <div className="absolute top-0 left-0 w-full h-4 bg-linear-to-r from-pink-hot via-purple-500 to-teal"></div>
-                <div className="absolute -top-24 -right-24 w-96 h-96 bg-pink-hot rounded-full blur-[100px] opacity-20"></div>
-                <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-teal rounded-full blur-[100px] opacity-20"></div>
-
-                <div className="max-w-360 mx-auto px-6 md:px-12 relative z-10 flex flex-col">
-
-                    {/* Top Section: Brand & History Side-by-Side */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 max-md:gap-8 items-center mb-24 max-md:mb-24">
-
-                        {/* Brand (Left) */}
-                        <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
-                            <div className="flex flex-col md:flex-row items-center gap-10 max-md:gap-6">
-                                <CustomLogo className="w-32 h-32 max-md:w-20 max-md:h-20 rounded-4xl p-4 shadow-2xl transform hover:rotate-6 transition-transform duration-500" />
-                                <div>
-                                    <h2 className="text-5xl md:text-7xl max-md:text-3xl font-black leading-none tracking-tighter mb-2">ENTRE LANAS</h2>
-                                    <h3 className="text-2xl md:text-4xl max-md:text-xl font-bold text-pink-hot tracking-[0.2em] leading-none">Y FRAGANCIAS</h3>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* History (Right) */}
-                        <div className="bg-gray-800/50 backdrop-blur-sm p-12 max-md:p-5 rounded-[2.5rem] border border-gray-700 h-full flex flex-col justify-center shadow-lg">
-                            <h4 className="text-3xl max-md:text-base font-black mb-4 flex items-center justify-center lg:justify-start gap-3 text-pink-hot uppercase tracking-widest">
-                                <span className="w-10 h-1.5 bg-pink-hot rounded-full"></span>
-                                Nuestra Historia
-                            </h4>
-                            <p className="text-gray-300 font-medium text-2xl max-md:text-xs leading-relaxed text-center lg:text-left">
-                                Nacimos de la pasión por crear. En "Entre Lanas y Fragancias", fusionamos la tradición textil con una experiencia sensorial única.
-                                Más que una tienda, somos un espacio donde cada hilo cuenta una historia y cada aroma despierta la creatividad.
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Separator */}
-                    <div className="w-full h-px bg-linear-to-r from-transparent via-gray-700 to-transparent mb-16 max-md:mb-20"></div>
-
-                    {/* Contact Info (Bottom) */}
-                    <div className="flex flex-col md:flex-row gap-12 max-md:gap-6 md:gap-32 justify-center items-center w-full mb-12 max-md:pt-12">
-                        <div
-                            onClick={() => setShowMapModal(true)}
-                            className="flex flex-col items-center group cursor-pointer hover:scale-110 transition-transform duration-300"
-                        >
-                            <div className="w-16 h-16 max-md:w-10 max-md:h-10 rounded-2xl bg-gray-800 flex items-center justify-center mb-4 max-md:mb-2 text-pink-hot group-hover:bg-pink-hot group-hover:text-white transition-all duration-300 shadow-lg border border-gray-700 group-hover:border-pink-hot">
-                                <svg className="w-8 h-8 max-md:w-5 max-md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                            </div>
-                            <h5 className="text-white font-black text-xl max-md:text-sm mb-1 uppercase tracking-wide group-hover:text-pink-hot transition-colors">Visítanos</h5>
-                            <p className="text-gray-400 text-lg max-md:text-xs group-hover:text-white transition-colors">Carrera 11# 6-08, Barrio el Rosario, Chía</p>
-                        </div>
-
-                        <div className="hidden md:block w-px h-24 bg-gray-800"></div>
-
-                        <a
-                            href="https://wa.me/573124578081"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex flex-col items-center group cursor-pointer hover:scale-110 transition-transform duration-300"
-                        >
-                            <div className="w-16 h-16 max-md:w-10 max-md:h-10 rounded-2xl bg-gray-800 flex items-center justify-center mb-4 max-md:mb-2 text-pink-hot group-hover:bg-pink-hot group-hover:text-white transition-all duration-300 shadow-lg border border-gray-700 group-hover:border-pink-hot">
-                                <svg className="w-8 h-8 max-md:w-5 max-md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                            </div>
-                            <h5 className="text-white font-black text-xl max-md:text-sm mb-1 uppercase tracking-wide group-hover:text-pink-hot transition-colors">Llámanos o Escribe</h5>
-                            <p className="text-gray-400 text-lg max-md:text-xs group-hover:text-white transition-colors">+57 312 457 8081 - 314 461 6230</p>
-                        </a>
-                    </div>
-
-                    <div className="border-t border-gray-800 pt-10 max-md:pt-6 text-center w-full">
-                        <p className="text-gray-500 font-bold text-lg max-md:text-xs">&copy; 2026 Entre Lanas y Fragancias. Todos los derechos reservados.</p>
-                    </div>
-                </div>
-            </footer>
-
-
-
-
-            {/* Google Maps Modal */}
-            {showMapModal && (
-                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-graphite/90 backdrop-blur-md animate-fadeIn" onClick={() => setShowMapModal(false)}>
-                    <div className="bg-white rounded-4xl w-full max-w-4xl h-[80vh] flex flex-col overflow-hidden shadow-2xl border-4 border-pink-hot relative" onClick={e => e.stopPropagation()}>
-                        <button
-                            onClick={() => setShowMapModal(false)}
-                            className="absolute top-4 right-4 z-10 w-12 h-12 bg-white text-graphite rounded-full flex items-center justify-center font-black shadow-lg hover:bg-pink-hot hover:text-white transition-all transform hover:rotate-90 border-2 border-graphite"
-                        >
-                            ✕
-                        </button>
-                        <div className="bg-graphite text-white py-4 px-8 flex items-center justify-between">
-                            <h3 className="text-2xl font-black uppercase tracking-widest">Nuestra Ubicación</h3>
-                        </div>
-                        <div className="grow w-full h-full">
-                            <iframe
-                                src="https://maps.google.com/maps?q=Carrera+11+%23+6-08%2C+Ch%C3%ADa%2C+Cundinamarca&z=17&output=embed"
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0 }}
-                                allowFullScreen
-                                loading="lazy"
-                                referrerPolicy="no-referrer-when-downgrade"
-                            ></iframe>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Footer />
 
             {/* Cart Drawer */}
             <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
         </div>
     );
 }

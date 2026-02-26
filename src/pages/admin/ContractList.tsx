@@ -427,7 +427,7 @@ export default function ContractList() {
                             <div
                                 key={contract.id}
                                 className="w-[90%] md:w-full max-w-5xl bg-white rounded-md md:rounded-lg shadow-xl border-2 md:border-4 border-graphite transition-all duration-300 text-center"
-                                style={{padding: '32px'}}
+                                style={{ padding: '32px' }}
                             >
                                 <div className="flex flex-col lg:flex-row items-center justify-center gap-4 md:gap-16">
                                     <div className="w-full lg:w-3/5">
@@ -533,8 +533,8 @@ export default function ContractList() {
                                             {statusLabels[status as keyof typeof statusLabels]}
                                         </button>
                                     ))}
-                                    </div>
                                 </div>
+                            </div>
                         ))}
                     </div>
                 )
@@ -544,48 +544,48 @@ export default function ContractList() {
                     <>
                         <div className="h-16 md:h-15"></div>
                         <div className="w-[90%] md:w-full max-w-6xl mx-auto mt-40 pt-12 border-t-8 border-dashed border-gray-200 bg-gray-50/60 rounded-lg px-4 md:px-8 pb-8">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                            <div>
-                                <h3 className="text-2xl md:text-3xl font-black text-graphite uppercase tracking-tight">Historial de Contratos</h3>
-                                <p className="text-xs font-black uppercase tracking-widest text-gray-400 mt-2">
-                                    {deliveredContracts.length} finalizados
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setIsHistoryOpen((prev) => !prev)}
-                                className="px-4 py-2 bg-graphite text-white font-black uppercase tracking-widest rounded-xl border-2 border-graphite shadow-[3px_3px_0px_0px_#333] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_#333] transition-all text-xs"
-                            >
-                                {isHistoryOpen ? 'Ocultar' : 'Mostrar'}
-                            </button>
-                        </div>
-                        {isHistoryOpen && (
-                            <div className="bg-white rounded-lg border-4 border-graphite shadow-xl overflow-hidden" style={{padding: '16px'}}>
-                                <div className="divide-y-2 divide-gray-100">
-                                    {deliveredContracts.map((contract) => (
-                                        <div key={contract.id} className="p-10 md:p-12 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                            <div>
-                                                <p className="text-xl font-black text-graphite">{contract.company_name}</p>
-                                                <p className="text-sm text-gray-500 font-medium">{contract.contact_person} · {new Date(contract.delivery_date).toLocaleDateString()}</p>
-                                            </div>
-                                            <div className="flex flex-col items-start md:items-end gap-2">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border-2 ${statusColors.delivered}`}>
-                                                    Pagado
-                                                </span>
-                                                <span className="text-lg font-black text-teal">{formatCurrency(contract.total)}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setSelectedHistoryContract(contract)}
-                                                    className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border-2 border-graphite text-graphite hover:bg-graphite hover:text-white transition-colors"
-                                                >
-                                                    Ver detalle
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                                <div>
+                                    <h3 className="text-2xl md:text-3xl font-black text-graphite uppercase tracking-tight">Historial de Contratos</h3>
+                                    <p className="text-xs font-black uppercase tracking-widest text-gray-400 mt-2">
+                                        {deliveredContracts.length} finalizados
+                                    </p>
                                 </div>
+                                <button
+                                    onClick={() => setIsHistoryOpen((prev) => !prev)}
+                                    className="px-4 py-2 bg-graphite text-white font-black uppercase tracking-widest rounded-xl border-2 border-graphite shadow-[3px_3px_0px_0px_#333] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[1px_1px_0px_0px_#333] transition-all text-xs"
+                                >
+                                    {isHistoryOpen ? 'Ocultar' : 'Mostrar'}
+                                </button>
                             </div>
-                        )}
-                    </div>
+                            {isHistoryOpen && (
+                                <div className="bg-white rounded-lg border-4 border-graphite shadow-xl overflow-hidden" style={{ padding: '16px' }}>
+                                    <div className="divide-y-2 divide-gray-100">
+                                        {deliveredContracts.map((contract) => (
+                                            <div key={contract.id} className="p-10 md:p-12 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                                <div>
+                                                    <p className="text-xl font-black text-graphite">{contract.company_name}</p>
+                                                    <p className="text-sm text-gray-500 font-medium">{contract.contact_person} · {new Date(contract.delivery_date).toLocaleDateString()}</p>
+                                                </div>
+                                                <div className="flex flex-col items-start md:items-end gap-2">
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border-2 ${statusColors.delivered}`}>
+                                                        Pagado
+                                                    </span>
+                                                    <span className="text-lg font-black text-teal">{formatCurrency(contract.total)}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedHistoryContract(contract)}
+                                                        className="text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border-2 border-graphite text-graphite hover:bg-graphite hover:text-white transition-colors"
+                                                    >
+                                                        Ver detalle
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </>
                 )}
 
@@ -1077,9 +1077,16 @@ export default function ContractList() {
                         <div className="border-4 border-graphite p-8">
                             {/* Header */}
                             <div className="flex justify-between items-start mb-10 border-b-4 border-black pb-6">
-                                <div>
-                                    <h1 className="text-4xl font-black uppercase tracking-tight mb-2">Tejenderas</h1>
-                                    <p className="text-gray-500 font-bold text-sm tracking-widest uppercase">Uniformes & Textiles</p>
+                                <div className="flex items-center gap-4">
+                                    <img src="/logo_original.png" alt="Logo" className="w-16 h-16 object-contain border-2 border-graphite rounded-xl p-1" />
+                                    <div className="flex flex-col">
+                                        <h1 className="text-4xl font-black uppercase tracking-tight">Entre Lanas y Fragancias</h1>
+                                        <div className="mt-1 space-y-0.5">
+                                            <p className="text-gray-500 font-bold text-xs tracking-widest uppercase italic">NIT 20421751 - 2</p>
+                                            <p className="text-gray-400 font-bold text-xs uppercase">Carrera 11 # 6-08, Barrio el Rosario, Chía</p>
+                                            <p className="text-gray-400 font-bold text-xs uppercase">Tel: 312 457 8081 - 314 461 6230</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xl font-black uppercase text-gray-400">Factura / Contrato</p>
@@ -1150,7 +1157,7 @@ export default function ContractList() {
 
                             {/* Footer */}
                             <div className="mt-20 text-center text-gray-400 text-sm font-medium border-t-2 border-gray-100 pt-6">
-                                <p>Gracias por su preferencia - Tejenderas</p>
+                                <p>Gracias por su preferencia - Entre Lanas y Fragancias</p>
                             </div>
                         </div>
                     )}

@@ -34,6 +34,17 @@ export default function Login() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-graphite relative overflow-hidden">
+            {/* Back to home button */}
+            <div className="absolute top-6 left-6 z-50">
+                <Link
+                    to="/"
+                    className="flex items-center gap-2 px-4 py-2 bg-white text-graphite font-black uppercase tracking-widest text-xs rounded-xl border-4 border-white shadow-[4px_4px_0px_0px_#FF4D8D] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    <span>Inicio</span>
+                </Link>
+            </div>
+
             {/* Decorative Background Elements */}
             <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                 <div className="absolute top-10 left-10 w-48 h-48 bg-pink-hot rounded-full blur-3xl"></div>

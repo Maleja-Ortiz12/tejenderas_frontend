@@ -62,7 +62,18 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                 </div>
                                 <div className="flex-1">
                                     <h3 className="font-black text-graphite text-base leading-snug line-clamp-2">{item.product.name}</h3>
-                                    <p className="text-pink-hot font-black text-lg">${parseFloat(item.product.price).toLocaleString()}</p>
+                                    <p className="text-pink-hot font-black text-lg">${parseFloat(String(item.unit_price || item.product.price)).toLocaleString()}</p>
+
+                                    {item.variants && item.variants.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {item.variants.map((v, i) => (
+                                                <span key={i} className="text-[10px] font-black uppercase tracking-tighter bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full border border-gray-200">
+                                                    {v.option}: {v.value}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center gap-3 mt-3">
                                         <button
                                             onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
