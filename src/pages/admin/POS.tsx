@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { useZxing } from 'react-zxing';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import type { KeyboardEvent } from 'react';
-import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { Link } from 'react-router-dom';
 import api from '../../api';
 import { AxiosError } from 'axios';
@@ -45,6 +44,8 @@ export default function POS() {
     const [cashTendered, setCashTendered] = useState<string>('');
     const printRef = useRef<HTMLDivElement>(null);
     const [isCartHydrated, setIsCartHydrated] = useState(false);
+    const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+
     const handlePrint = useReactToPrint({
         contentRef: printRef,
         documentTitle: 'Factura POS',
@@ -79,62 +80,75 @@ export default function POS() {
         }
     }, [cart, paymentMethod, cashTendered, isCartHydrated]);
 
-    const zxingHints = useMemo(() => {
-        const h = new Map();
-        h.set(DecodeHintType.POSSIBLE_FORMATS, [
-            BarcodeFormat.CODE_128,
-            BarcodeFormat.CODE_39,
-            BarcodeFormat.EAN_13,
-            BarcodeFormat.EAN_8,
-            BarcodeFormat.UPC_A,
-            BarcodeFormat.UPC_E,
-            BarcodeFormat.ITF,
-            BarcodeFormat.CODE_93
-        ]);
-        h.set(DecodeHintType.TRY_HARDER, true);
-        return h;
+    // Cleanup on unmount or scan off
+    useEffect(() => {
+        return () => {
+            if (html5QrCodeRef.current?.isScanning) {
+                html5QrCodeRef.current.stop().catch(console.error);
+            }
+        };
     }, []);
 
-    const { ref } = useZxing({
-        onDecodeResult(result) {
-            handleScannedCode(result.getText());
-        },
-        onError(error) {
-            // While scanning, ZXing may throw NotFound/Checksum/Format exceptions frequently.
-            // Those are normal (no code in frame yet) and should not be shown as permission errors.
-            const errorName = (error as Error | undefined)?.name || '';
-            const errorMessage = (error as Error | undefined)?.message || '';
-            const isNonFatalScanError =
-                errorName.includes('NotFound') ||
-                errorName.includes('Checksum') ||
-                errorName.includes('Format') ||
-                errorMessage.toLowerCase().includes('notfound') ||
-                errorMessage.toLowerCase().includes('checksum') ||
-                errorMessage.toLowerCase().includes('format');
+    useEffect(() => {
+        if (isScanning) {
+            startScanner();
+        } else {
+            stopScanner();
+        }
+    }, [isScanning]);
 
-            if (isNonFatalScanError) return;
+    const startScanner = async () => {
+        try {
+            const scanner = new Html5Qrcode("reader");
+            html5QrCodeRef.current = scanner;
 
-            console.error(error);
-            setScanError('No se pudo acceder a la cámara. Revisa permisos del navegador y vuelve a intentar.');
-        },
-        constraints: {
-            video: {
-                facingMode: { ideal: 'environment' },
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 },
-                ...({ focusMode: { ideal: 'continuous' } } as any),
-            } as MediaTrackConstraints,
-        },
-        hints: zxingHints,
-        paused: !isScanning,
-    });
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 150 },
+                aspectRatio: 1.0,
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.ITF,
+                ]
+            };
+
+            await scanner.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText) => {
+                    handleScannedCode(decodedText);
+                },
+                undefined // Ignore parse errors (they happen constantly until it finds a code)
+            );
+            setScanError('');
+        } catch (err) {
+            console.error("No se pudo iniciar el escáner:", err);
+            setScanError("No se pudo acceder a la cámara o el elemento 'reader' no está listo.");
+        }
+    };
+
+    const stopScanner = async () => {
+        if (html5QrCodeRef.current?.isScanning) {
+            try {
+                await html5QrCodeRef.current.stop();
+                html5QrCodeRef.current = null;
+            } catch (err) {
+                console.error("Error deteniendo escáner:", err);
+            }
+        }
+    };
 
     const handleScannedCode = (code: string) => {
         const normalized = code?.trim();
         if (!normalized) return;
 
         setBarcode(normalized);
-        setIsScanning(false); // Close scanner after successful scan
+        setIsScanning(false); // This triggers stopScanner via useEffect
         setScanError('');
         lookupProduct(normalized);
     };
@@ -468,11 +482,8 @@ export default function POS() {
                                             {scanError}
                                         </div>
                                     )}
-                                    <div className="rounded-2xl overflow-hidden border-4 border-graphite bg-black aspect-video relative">
-                                        <video ref={ref} className="w-full h-full object-cover" autoPlay muted playsInline />
-                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="w-64 h-32 border-4 border-red-pink/50 rounded-xl"></div>
-                                        </div>
+                                    <div className="rounded-2xl overflow-hidden border-4 border-graphite bg-black aspect-square relative" id="reader">
+                                        {/* Html5Qrcode will render here */}
                                     </div>
                                     <p className="text-center mt-4 text-gray-500 font-bold">Apunta el código de barras a la cámara</p>
                                 </div>
