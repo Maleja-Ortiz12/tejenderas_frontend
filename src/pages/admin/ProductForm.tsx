@@ -7,31 +7,6 @@ import { AxiosError } from 'axios';
 import { getStorageUrl } from '../../utils/imageUrl';
 import AdminLayout from '../../components/AdminLayout';
 
-const getShapeIcon = (name: string) => {
-    const n = name.toLowerCase().trim();
-    if (n.includes('redon') || n.includes('circ') || n.includes('round') || n.includes('esfer') || n.includes('bola') || n.includes('botón') || n.includes('disco')) {
-        return (
-            <svg className="w-6 h-6 shrink-0 overflow-visible" viewBox="0 0 24 24" fill="currentColor">
-                <circle cx="12" cy="12" r="10" />
-            </svg>
-        );
-    }
-    if (n.includes('cuadr') || n.includes('squar') || n.includes('rect') || n.includes('box')) {
-        return (
-            <svg className="w-6 h-6 shrink-0 overflow-visible" viewBox="0 0 24 24" fill="currentColor">
-                <rect x="2" y="2" width="20" height="20" rx="3" />
-            </svg>
-        );
-    }
-    if (n.includes('trian') || n.includes('delta')) {
-        return (
-            <svg className="w-6 h-6 shrink-0 overflow-visible" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 21H22L12 2Z" />
-            </svg>
-        );
-    }
-    return null;
-};
 
 interface VariantConfig {
     id: number;
@@ -306,405 +281,486 @@ export default function ProductForm() {
 
     return (
         <AdminLayout>
-            <div style={{ paddingTop: '1rem', paddingBottom: '2rem', paddingLeft: '0.5rem', paddingRight: '0.5rem' }} className="flex flex-col items-center w-full">
-                {/* Title Section (Outside) */}
-                <div className="w-full max-w-4xl mb-12 flex justify-between items-end px-4">
-                    <div className="flex flex-col">
-                        <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-graphite uppercase tracking-tight leading-none mb-4">
-                            {isEditing ? 'Editar Inventario' : 'Cargar Inventario'}
-                        </h1>
-                        <p className="text-gray-500 font-bold text-base sm:text-lg uppercase tracking-widest">
-                            {isEditing ? 'Modifica los detalles del producto' : 'Configura el costo e imagen por cada clase'}
-                        </p>
+            <div className="min-h-screen bg-gray-50/50 pb-24 px-6 md:px-12 flex justify-center">
+                <div className="w-full max-w-5xl">
+                    {/* Header Section */}
+                    <div className="pt-10 md:pt-20 mb-8 md:mb-12">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-8">
+                            <div className="space-y-4">
+                                <Link
+                                    to="/admin/products"
+                                    className="group inline-flex items-center gap-3 text-gray-500 hover:text-teal transition-all font-bold uppercase text-[11px] tracking-[0.25em]"
+                                >
+                                    <div className="w-10 h-10 rounded-2xl bg-white border border-gray-100 flex items-center justify-center group-hover:border-teal/30 group-hover:bg-teal/5 transition-all shadow-sm">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                                        </svg>
+                                    </div>
+                                    Volver al Inventario
+                                </Link>
+                                <div>
+                                    <h1 className="text-4xl md:text-6xl font-black text-graphite tracking-tight leading-none mb-4">
+                                        {isEditing ? 'Editar Producto' : 'Nuevo Producto'}
+                                    </h1>
+                                    <p className="text-gray-500 font-bold text-base uppercase tracking-widest max-w-xl">
+                                        {isEditing ? 'Gestión avanzada de existencias y parámetros comerciales' : 'Añade un nuevo tesoro a tu catálogo digital'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+                                <button
+                                    type="button"
+                                    onClick={handlePrintClick}
+                                    className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-6 bg-white hover:bg-gray-50 text-graphite font-black uppercase tracking-widest text-[10px] md:text-xs rounded-[1.5rem] border-2 border-gray-100 shadow-sm hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-3 md:gap-4"
+                                >
+                                    <span className="text-2xl md:text-3xl">🖨️</span> Imprimir Etiqueta
+                                </button>
+                                <button
+                                    form="product-form"
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="w-full sm:w-auto px-8 md:px-12 py-4 md:py-6 bg-teal hover:bg-teal-600 text-white font-black uppercase tracking-widest text-[10px] md:text-xs rounded-[1.5rem] shadow-xl shadow-teal-500/20 active:scale-95 transition-all"
+                                >
+                                    {isLoading ? 'Guardando...' : (isEditing ? 'Actualizar' : 'Publicar')}
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <Link
-                        to="/admin/products"
-                        className="bg-pink-hot border-2 border-graphite p-2.5 rounded-xl shadow-[3px_3px_0px_0px_#333] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all"
-                        title="Cerrar y Volver"
-                    >
-                        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </Link>
-                </div>
 
-                <div className="w-full max-w-4xl rounded-2xl md:rounded-3xl border-[6px] border-pink-hot bg-white shadow-[15px_18px_0px_0px_#333] mb-16 overflow-hidden">
-                    <div className="p-6 sm:p-10 md:p-16">
-
+                    <form id="product-form" onSubmit={handleSubmit} className="mb-24">
                         {error && (
-                            <div className="bg-red-pink/10 border-2 border-red-pink text-red-pink px-4 py-3 rounded-xl mb-6 font-bold flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div className="bg-red-500/10 border-2 border-red-500/20 text-red-600 px-8 py-5 rounded-3xl mb-12 font-bold flex items-center gap-4 animate-in fade-in slide-in-from-top-4">
+                                <div className="w-10 h-10 bg-red-500 rounded-2xl flex items-center justify-center text-white shrink-0">⚠️</div>
                                 {error}
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-10">
-                            {/* Name, Barcode, Category — single column */}
-                            <div className="flex flex-col gap-6">
-                                <section className="space-y-6">
-                                    {/* Name */}
-                                    <div>
-                                        <label htmlFor="name" className="block text-lg font-black text-graphite mb-3 uppercase tracking-wider">
-                                            Nombre del Producto
-                                        </label>
-                                        <input
-                                            id="name"
-                                            type="text"
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            className="w-full px-6 py-4 bg-white border-[3px] border-graphite rounded-2xl text-graphite placeholder-gray-400 font-bold text-lg focus:outline-none focus:border-pink-hot focus:shadow-[6px_6px_0px_0px_#FE6196] transition-all"
-                                            placeholder="Ej: Hilo de Algodón"
-                                            required
-                                        />
-                                    </div>
-
-                                    {/* Promo / Combo Switches */}
-                                    <div className="flex flex-wrap gap-6">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsPromo(!isPromo)}
-                                            className={`flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl border-[4px] transition-all font-black uppercase tracking-widest text-sm ${isPromo ? 'bg-pink-hot border-graphite text-white shadow-[6px_6px_0px_0px_#333] scale-105' : 'bg-white border-graphite/10 text-gray-400 hover:border-pink-hot/50 hover:text-pink-hot'}`}
-                                        >
-                                            <span className="text-2xl">{isPromo ? '🔥' : '🏷️'}</span>
-                                            Es Promoción
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsCombo(!isCombo)}
-                                            className={`flex-1 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl border-[4px] transition-all font-black uppercase tracking-widest text-sm ${isCombo ? 'bg-teal border-graphite text-white shadow-[6px_6px_0px_0px_#333] scale-105' : 'bg-white border-graphite/10 text-gray-400 hover:border-teal/50 hover:text-teal'}`}
-                                        >
-                                            <span className="text-2xl">{isCombo ? '📦' : '🎁'}</span>
-                                            Es Combo
-                                        </button>
-                                    </div>
-
-                                    {/* Description */}
-                                    <div>
-                                        <label htmlFor="description" className="block text-lg font-black text-graphite mb-3 uppercase tracking-wider">
-                                            Descripción del Producto
-                                        </label>
-                                        <textarea
-                                            id="description"
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                            rows={3}
-                                            className="w-full px-6 py-4 bg-white border-[3px] border-graphite rounded-2xl text-graphite placeholder-gray-400 font-bold text-lg focus:outline-none focus:border-pink-hot focus:shadow-[6px_6px_0px_0px_#FE6196] transition-all resize-none"
-                                            placeholder="Detalla las características de la promoción o producto..."
-                                        />
-                                    </div>
-
-                                    {/* Global Config (Show ONLY if Promo or Combo) */}
-                                    {(isPromo || isCombo) && (
-                                        <div className="bg-gray-50 p-8 sm:p-10 rounded-3xl border-4 border-dashed border-gray-200 space-y-8 animate-in fade-in slide-in-from-top-4">
-                                            <p className="text-sm font-black text-gray-400 uppercase tracking-widest text-center shadow-sm py-2 bg-white rounded-full border border-gray-100">Configuración de {isPromo ? 'Promoción' : 'Combo'} / Costos</p>
-
-                                            {/* Image Upload for Promo/Combo */}
-                                            <div className="flex flex-col items-center gap-6 bg-white p-10 rounded-3xl border-4 border-indigo-50 shadow-sm relative overflow-hidden group">
-                                                <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600 opacity-20"></div>
-                                                <div className="w-52 h-52 border-[6px] border-gray-100 rounded-3xl flex items-center justify-center overflow-hidden bg-gray-50 transition-all group-hover:border-indigo-100">
-                                                    {mainImagePreview ? (
-                                                        <img src={mainImagePreview} className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span className="text-7xl grayscale opacity-10">🖼️</span>
-                                                    )}
-                                                </div>
-                                                <label className="px-10 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-black uppercase tracking-widest rounded-2xl cursor-pointer transition-all shadow-lg active:scale-95 flex items-center gap-2">
-                                                    <span>{mainImagePreview ? '🔄' : '📤'}</span>
-                                                    {mainImagePreview ? 'Cambiar Imagen' : 'Subir Imagen del Combo'}
-                                                    <input
-                                                        type="file"
-                                                        className="hidden"
-                                                        accept="image/*"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                setMainImageFile(file);
-                                                                const reader = new FileReader();
-                                                                reader.onloadend = () => {
-                                                                    setMainImagePreview(reader.result as string);
-                                                                };
-                                                                reader.readAsDataURL(file);
-                                                            }
-                                                        }}
-                                                    />
-                                                </label>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                                                <div>
-                                                    <label className="block text-sm font-black text-gray-500 mb-3 uppercase tracking-widest ml-1">Costo Base ($)</label>
-                                                    <input
-                                                        type="text"
-                                                        value={basePrice}
-                                                        onChange={(e) => {
-                                                            const base = e.target.value;
-                                                            const b = parseFloat(base) || 0;
-                                                            const m = parseFloat(markup) || 0;
-                                                            let final = '0';
-                                                            if (markupType === 'percentage') final = (b + (b * m / 100)).toFixed(2);
-                                                            else final = (b + m).toFixed(2);
-                                                            setBasePrice(base);
-                                                            setPrice(final);
-                                                        }}
-                                                        className="w-full px-6 py-4 bg-white border-[3px] border-gray-200 rounded-2xl font-black text-2xl text-graphite focus:border-pink-hot outline-none transition-all shadow-inner"
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-black text-gray-500 mb-3 uppercase tracking-widest ml-1">Tipo de Utilidad</label>
-                                                    <div className="flex bg-white rounded-2xl border-[3px] border-gray-200 p-1.5 h-[68px]">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const b = parseFloat(basePrice) || 0;
-                                                                const m = parseFloat(markup) || 0;
-                                                                const final = (b + (b * m / 100)).toFixed(2);
-                                                                setMarkupType('percentage');
-                                                                setPrice(final);
-                                                            }}
-                                                            className={`flex-1 text-sm font-black rounded-xl transition-all ${markupType === 'percentage' ? 'bg-pink-hot text-white shadow-md scale-[1.02]' : 'text-gray-300 hover:text-gray-400'}`}
-                                                        >PORCENTAJE (%)</button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                const b = parseFloat(basePrice) || 0;
-                                                                const m = parseFloat(markup) || 0;
-                                                                const final = (b + m).toFixed(2);
-                                                                setMarkupType('manual');
-                                                                setPrice(final);
-                                                            }}
-                                                            className={`flex-1 text-sm font-black rounded-xl transition-all ${markupType === 'manual' ? 'bg-teal text-white shadow-md scale-[1.02]' : 'text-gray-300 hover:text-gray-400'}`}
-                                                        >MONTO FIJO ($)</button>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                                                <div>
-                                                    <label className="block text-sm font-black text-gray-500 mb-3 uppercase tracking-widest ml-1">Margen de Ganancia</label>
-                                                    <input
-                                                        type="text"
-                                                        value={markup}
-                                                        onChange={(e) => {
-                                                            const mark = e.target.value;
-                                                            const b = parseFloat(basePrice) || 0;
-                                                            const m = parseFloat(mark) || 0;
-                                                            let final = '0';
-                                                            if (markupType === 'percentage') final = (b + (b * m / 100)).toFixed(2);
-                                                            else final = (b + m).toFixed(2);
-                                                            setMarkup(mark);
-                                                            setPrice(final);
-                                                        }}
-                                                        className="w-full px-6 py-4 bg-white border-[3px] border-gray-200 rounded-2xl font-black text-2xl text-pink-hot focus:border-pink-hot outline-none transition-all shadow-inner"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-black text-gray-500 mb-3 uppercase tracking-widest ml-1">Stock Inicial</label>
-                                                    <input
-                                                        type="text"
-                                                        value={stock}
-                                                        onChange={(e) => setStock(e.target.value)}
-                                                        className="w-full px-6 py-4 bg-white border-[3px] border-gray-200 rounded-2xl font-black text-2xl text-graphite focus:border-teal outline-none transition-all shadow-inner"
-                                                        placeholder="0"
-                                                    />
-                                                </div>
-                                            </div>
-
-                                            {/* Gallery Upload (Promos/Combos special focus but available for all) */}
-                                            <div className="bg-white p-8 sm:p-10 rounded-3xl border-4 border-indigo-50 shadow-sm">
-                                                <p className="text-sm font-black text-indigo-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                                    <span>📸</span> Galería de Fotos de Referencia
-                                                </p>
-
-                                                <div className="flex flex-wrap gap-4">
-                                                    {galleryImagePreviews.map((preview, idx) => (
-                                                        <div key={idx} className="relative w-24 h-24 sm:w-32 sm:h-32 border-2 border-gray-100 rounded-2xl overflow-hidden group">
-                                                            <img src={preview} className="w-full h-full object-cover" />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setGalleryImagePreviews(prev => prev.filter((_, i) => i !== idx));
-                                                                    setGalleryImageFiles(prev => prev.filter((_, i) => i !== idx));
-                                                                }}
-                                                                className="absolute top-1 right-1 bg-red-pink text-white rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-all shadow-md"
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    <label className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-dashed border-gray-100 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-indigo-200 hover:bg-indigo-50/30 transition-all group">
-                                                        <span className="text-2xl sm:text-3xl grayscale group-hover:grayscale-0 transition-all">➕</span>
-                                                        <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest mt-2 group-hover:text-indigo-400">Subir</span>
-                                                        <input
-                                                            type="file"
-                                                            multiple
-                                                            className="hidden"
-                                                            accept="image/*"
-                                                            onChange={(e) => {
-                                                                const files = Array.from(e.target.files || []);
-                                                                if (files.length > 0) {
-                                                                    setGalleryImageFiles(prev => [...prev, ...files]);
-                                                                    files.forEach(file => {
-                                                                        const reader = new FileReader();
-                                                                        reader.onloadend = () => {
-                                                                            setGalleryImagePreviews(prev => [...prev, reader.result as string]);
-                                                                        };
-                                                                        reader.readAsDataURL(file);
-                                                                    });
-                                                                }
-                                                            }}
-                                                        />
-                                                    </label>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex justify-between items-center bg-blue-600 px-10 py-8 rounded-3xl border-4 border-white shadow-xl">
-                                                <span className="text-sm font-black uppercase text-white tracking-[0.2em]">Precio Final de Venta</span>
-                                                <span className="text-4xl font-black text-white drop-shadow-[0_4px_4px_rgba(0,0,0,0.2)]">${price}</span>
-                                            </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                            {/* LEFT COLUMN: Main Info */}
+                            <div className="lg:col-span-8 space-y-12">
+                                {/* General Info Card */}
+                                <section className="bg-white rounded-[3.0rem] border border-gray-100 shadow-2xl shadow-gray-200/40 p-12 md:p-16 space-y-12 transition-all hover:shadow-teal/5">
+                                    <div className="flex items-center gap-5 md:gap-6">
+                                        <div className="w-12 h-16 md:w-14 md:h-20 bg-pink-hot rounded-[1.25rem] flex items-center justify-center text-white text-2xl md:text-3xl shadow-xl shadow-pink-500/20 shrink-0">📝</div>
+                                        <div>
+                                            <h2 className="text-3xl md:text-4xl font-black text-graphite tracking-tight leading-none">Información General</h2>
+                                            <p className="text-gray-600 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-2">Identidad y narrativa del producto</p>
                                         </div>
-                                    )}
-
-                                    {/* Category */}
-                                    <div>
-                                        <label className="block text-lg font-black text-graphite mb-3 uppercase tracking-wider">
-                                            Categoría Principal
-                                        </label>
-                                        <select
-                                            value={selectedCategoryId}
-                                            onChange={(e) => {
-                                                setSelectedCategoryId(Number(e.target.value) || '');
-                                                setSelectedSubcategoryId('');
-                                            }}
-                                            className="w-full px-6 py-4 bg-white border-[3px] border-graphite rounded-2xl text-graphite font-black text-lg focus:outline-none focus:border-pink-hot transition-all cursor-pointer appearance-none shadow-sm"
-                                            required
-                                        >
-                                            <option value="">Seleccionar Categoría</option>
-                                            {categories.map(cat => (
-                                                <option key={cat.id} value={cat.id}>{cat.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    {/* Subcategory selector — depends on selected category */}
-                                    {selectedCategoryId && (() => {
-                                        const cat = categories.find(c => c.id === selectedCategoryId);
-                                        const subs = cat?.subcategories ?? [];
-                                        if (subs.length === 0) return null;
-                                        return (
-                                            <div>
-                                                <label className="block text-sm font-black text-graphite mb-2 uppercase tracking-wide">
-                                                    Subcategoría
-                                                </label>
-                                                <select
-                                                    value={selectedSubcategoryId}
-                                                    onChange={(e) => setSelectedSubcategoryId(Number(e.target.value) || '')}
-                                                    className="w-full px-4 py-3 bg-white border-2 border-graphite rounded-xl text-graphite font-bold focus:outline-none focus:border-pink-hot transition-all"
-                                                >
-                                                    <option value="">Sin subcategoría</option>
-                                                    {subs.map((sub: { id: number; name: string }) => (
-                                                        <option key={sub.id} value={sub.id}>{sub.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* Barcode */}
-                                    <div>
-                                        <label htmlFor="barcode" className="block text-lg font-black text-graphite mb-3 uppercase tracking-wider">
-                                            Código de Barras Único
-                                        </label>
-                                        <div className="flex flex-wrap gap-2">
-                                            <div className="relative flex-1 min-w-[160px]">
-                                                <input
-                                                    id="barcode"
-                                                    type="text"
-                                                    value={barcode}
-                                                    onChange={(e) => setBarcode(e.target.value)}
-                                                    onBlur={(e) => checkBarcode(e.target.value)}
-                                                    className="w-full px-6 py-4 bg-white border-[3px] border-graphite rounded-2xl text-graphite font-black text-lg focus:outline-none focus:border-pink-hot focus:shadow-[6px_6px_0px_0px_#FE6196] transition-all font-mono"
-                                                    placeholder="Escanea o genera..."
-                                                    required
-                                                />
-                                                {isChecking && (
-                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                        <svg className="animate-spin h-5 w-5 text-teal" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={generateBarcode}
-                                                className="flex-1 sm:flex-none px-8 py-4 bg-indigo-500 hover:bg-indigo-600 text-white font-black uppercase tracking-widest text-sm rounded-2xl border-[3px] border-graphite shadow-[5px_5px_0px_0px_#333] active:translate-y-1 active:shadow-none transition-all"
-                                            >
-                                                Generar
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={handlePrintClick}
-                                                className="flex-1 sm:flex-none px-8 py-4 bg-teal hover:bg-teal-600 text-white font-black uppercase tracking-widest text-sm rounded-2xl border-[3px] border-graphite shadow-[5px_5px_0px_0px_#333] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-2"
-                                            >
-                                                <span>🖨️</span> Imprimir
-                                            </button>
-                                        </div>
-
-                                        {/* Live barcode preview */}
-                                        {barcode && (
-                                            <div className="mt-4 flex flex-col items-center bg-white border-2 border-gray-200 rounded-2xl py-5 px-4 shadow-sm">
-                                                {name && <p className="text-sm font-black text-graphite mb-2 uppercase tracking-wide truncate max-w-full">{name}</p>}
-                                                <Barcode
-                                                    value={barcode}
-                                                    format="CODE128"
-                                                    width={2}
-                                                    height={60}
-                                                    fontSize={14}
-                                                    displayValue={true}
-                                                />
-                                            </div>
-                                        )}
                                     </div>
 
-                                    {/* Hidden Barcode for Printing */}
-                                    <div style={{ display: 'none' }}>
-                                        <div ref={barcodeRef} className="p-8 flex flex-col items-center justify-center bg-white min-w-[300px]">
-                                            <h4 className="font-bold text-lg mb-2 text-center">{name}</h4>
-                                            <Barcode
-                                                value={barcode || '000000000000'}
-                                                format="CODE128"
-                                                width={2}
-                                                height={60}
-                                                fontSize={16}
-                                                displayValue={true}
+                                    <div className="space-y-8">
+                                        <div>
+                                            <label htmlFor="name" className="block text-xs font-black text-gray-600 mb-4 uppercase tracking-[0.2rem] ml-1">
+                                                Nombre Comercial del Producto
+                                            </label>
+                                            <input
+                                                id="name"
+                                                type="text"
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                className="w-full px-6 md:px-10 py-4 md:py-6 pt-2 bg-gray-50/50 focus:bg-white border-3 border-gray-400 focus:border-teal rounded-[1.5rem] text-graphite placeholder-gray-300 font-bold text-xl md:text-2xl outline-none transition-all shadow-sm focus:shadow-teal/5"
+                                                placeholder="Ej: Perfume Textil Vainilla 500ml"
+                                                required
                                             />
-                                            <p className="mt-2 text-sm text-center max-w-[250px] truncate">{description}</p>
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="description" className="block text-xs font-black text-gray-500 mb-4 uppercase tracking-[0.2em] ml-1">
+                                                Descripción del Producto
+                                            </label>
+                                            <textarea
+                                                id="description"
+                                                value={description}
+                                                onChange={(e) => setDescription(e.target.value)}
+                                                rows={4}
+                                                className="w-full px-6 md:px-10 py-4 md:py-6 bg-gray-50/50 focus:bg-white border-3 border-gray-400 focus:border-teal rounded-[1.5rem] text-graphite placeholder-gray-300 font-bold text-lg md:text-xl outline-none transition-all resize-none shadow-sm focus:shadow-teal/5"
+                                                placeholder="Describe las notas olfativas, composición o detalles relevantes..."
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-10 pt-6">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsPromo(!isPromo)}
+                                                className={`flex items-center justify-between gap-4 md:gap-8 px-6 md:px-10 py-4 md:py-6 rounded-[1.5rem] border-4 md:border-6 transition-all font-black uppercase tracking-[0.2em] text-[10px] md:text-[11px] ${isPromo ? 'bg-pink-hot border-transparent text-white shadow-2xl shadow-pink-600/30' : 'bg-white border-gray-100 text-gray-500 hover:border-pink-500/30'}`}
+                                            >
+                                                <div className="flex items-center gap-3 md:gap-5">
+                                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-2xl md:text-3xl transition-colors ${isPromo ? 'bg-white/40' : 'bg-gray-80'}`}>🔥</div>
+                                                    Es Promoción
+                                                </div>
+                                                <div className={`w-12 h-7 md:w-14 md:h-8 rounded-full relative transition-colors p-1 md:p-1.5 ${isPromo ? 'bg-white/30' : 'bg-gray-100'}`}>
+                                                    <div className={`w-5 h-5 rounded-full transition-all shadow-sm ${isPromo ? 'ml-5 md:ml-6 bg-white' : 'ml-0 bg-gray-400'}`} />
+                                                </div>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCombo(!isCombo)}
+                                                className={`flex items-center justify-between gap-4 md:gap-8 px-6 md:px-10 py-4 md:py-6 rounded-[1.5rem] border-3 transition-all font-black uppercase tracking-[0.2em] text-[10px] md:text-[11px] ${isCombo ? 'bg-teal border-transparent text-white shadow-2xl shadow-teal/30' : 'bg-white border-gray-100 text-gray-500 hover:border-teal/30'}`}
+                                            >
+                                                <div className="flex items-center gap-3 md:gap-5">
+                                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-xl md:text-2xl transition-colors ${isCombo ? 'bg-white/20' : 'bg-gray-50'}`}>📦</div>
+                                                    Es Combo
+                                                </div>
+                                                <div className={`w-12 h-7 md:w-14 md:h-8 rounded-full relative transition-colors p-1 md:p-1.5 ${isCombo ? 'bg-white/30' : 'bg-gray-100'}`}>
+                                                    <div className={`w-5 h-5 rounded-full transition-all shadow-sm ${isCombo ? 'ml-5 md:ml-6 bg-white' : 'ml-0 bg-gray-400'}`} />
+                                                </div>
+                                            </button>
                                         </div>
                                     </div>
                                 </section>
 
-                            </div>
-
-                            {/* Variants Section (Hide if Promo or Combo) */}
-                            {!isPromo && !isCombo && (
-                                <div className="pt-14 border-t-4 border-gray-100 space-y-10 animate-in fade-in zoom-in-95 duration-300">
-                                    {/* Section Header */}
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center text-4xl shadow-lg shrink-0 border-4 border-indigo-400">✨</div>
-                                        <div>
-                                            <h3 className="text-4xl font-black text-graphite uppercase tracking-tight">Clases y Variantes</h3>
-                                            <p className="text-base font-bold text-indigo-400 uppercase tracking-widest mt-1">Selecciona las clases, luego activa y configura cada variante</p>
+                                {/* Categorization & Barcode Card */}
+                                <section className="bg-white rounded-[1rem] border border-gray-100 shadow-2xl shadow-gray-200/40 p-12 md:p-16 space-y-12 transition-all hover:shadow-teal/5">
+                                    <div className="flex items-center gap-5 md:gap-8">
+                                        <div className="w-12 h-16 md:w-14 md:h-20 bg-teal rounded-[1.25rem] flex items-center justify-center text-white text-2xl md:text-3xl shadow-xl shadow-teal-500/20 shrink-0">🏷️</div>
+                                        <div className="flex flex-col gap-2 md:gap-3">
+                                            <h2 className="text-3xl md:text-5xl font-black text-graphite tracking-tight uppercase">Categorización</h2>
+                                            <p className="text-gray-500 font-bold text-[10px] md:text-xs uppercase tracking-widest ml-1">Ubicación y codificación del producto</p>
                                         </div>
                                     </div>
 
-                                    {/* Step 1: Select attribute groups */}
-                                    <div className="bg-indigo-50 rounded-3xl border-[3px] border-indigo-200 p-8 sm:p-10 md:p-12 space-y-8">
-                                        <div className="flex items-center gap-4">
-                                            <span className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center font-black text-lg shrink-0 border-2 border-white shadow-sm">1</span>
-                                            <p className="text-base font-black text-indigo-700 uppercase tracking-widest">Clases disponibles — actívalas haciendo clic</p>
+                                    {/* Physical Spacer for guaranteed gap */}
+                                    <div className="h-6" aria-hidden="true" />
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                        <div className="space-y-8">
+                                            <div>
+                                                <label className="block text-xs font-black text-gray-500 mb-4 uppercase tracking-[0.2em] ml-1">
+                                                    Categoría Principal
+                                                </label>
+                                                <div className="relative group">
+                                                    <select
+                                                        value={selectedCategoryId}
+                                                        onChange={(e) => {
+                                                            setSelectedCategoryId(Number(e.target.value) || '');
+                                                            setSelectedSubcategoryId('');
+                                                        }}
+                                                        className="w-full px-6 md:px-10 py-4 md:py-6 bg-gray-50/50 focus:bg-white border-2 border-gray-100 focus:border-teal rounded-[1.5rem] text-graphite font-black text-lg md:text-2xl outline-none transition-all cursor-pointer appearance-none shadow-sm"
+                                                        required
+                                                    >
+                                                        <option value="">Seleccionar...</option>
+                                                        {categories.map(cat => (
+                                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                        ))}
+                                                    </select>
+                                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500 group-hover:text-teal transition-colors">
+                                                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {selectedCategoryId && (() => {
+                                                const cat = categories.find(c => c.id === selectedCategoryId);
+                                                const subs = cat?.subcategories ?? [];
+                                                if (subs.length === 0) return null;
+                                                return (
+                                                    <div className="animate-in fade-in slide-in-from-top-2">
+                                                        <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest ml-1">
+                                                            Subcategoría (Opcional)
+                                                        </label>
+                                                        <div className="relative">
+                                                            <select
+                                                                value={selectedSubcategoryId}
+                                                                onChange={(e) => setSelectedSubcategoryId(Number(e.target.value) || '')}
+                                                                className="w-full px-6 py-4 bg-gray-50 focus:bg-white border-2 border-gray-100 focus:border-teal rounded-2xl text-graphite font-black text-lg outline-none transition-all cursor-pointer appearance-none shadow-sm"
+                                                            >
+                                                                <option value="">Sin subcategoría</option>
+                                                                {subs.map((sub: { id: number; name: string }) => (
+                                                                    <option key={sub.id} value={sub.id}>{sub.name}</option>
+                                                                ))}
+                                                            </select>
+                                                            <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
-                                        <div className="flex flex-wrap gap-3 md:gap-5">
+
+                                        <div className="space-y-8">
+                                            <div>
+                                                <label htmlFor="barcode" className="block text-xs font-black text-gray-500 mb-4 uppercase tracking-[0.2em] ml-1">
+                                                    Código de Barras
+                                                </label>
+                                                <div className="flex gap-4">
+                                                    <div className="relative flex-1">
+                                                        <input
+                                                            id="barcode"
+                                                            type="text"
+                                                            value={barcode}
+                                                            onChange={(e) => setBarcode(e.target.value)}
+                                                            onBlur={(e) => checkBarcode(e.target.value)}
+                                                            className="w-full px-6 md:px-10 py-4 md:py-6 bg-gray-50/50 focus:bg-white border-2 border-gray-100 focus:border-indigo-500 rounded-[1.5rem] text-graphite font-black text-lg md:text-2xl outline-none transition-all font-mono shadow-sm"
+                                                            placeholder="000000000"
+                                                            required
+                                                        />
+                                                        {isChecking && (
+                                                            <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                                                                <div className="animate-spin h-6 w-6 border-2 border-teal border-t-transparent rounded-full" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={generateBarcode}
+                                                        className="px-10 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-[1.25rem] font-black uppercase text-[11px] tracking-widest transition-all border-2 border-indigo-100/50 hover:border-transparent active:scale-95 shadow-sm"
+                                                        title="Generar automáticamente"
+                                                    >
+                                                        Auto
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {barcode && (
+                                                <div className="flex flex-col items-center justify-center p-4 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl min-h-[100px] animate-in zoom-in-95">
+                                                    <div className="bg-white p-2 rounded-lg shadow-sm">
+                                                        <Barcode
+                                                            value={barcode}
+                                                            format="CODE128"
+                                                            width={1.2}
+                                                            height={40}
+                                                            fontSize={10}
+                                                            displayValue={true}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Prices & Stock Card */}
+                                {(isPromo || isCombo) && (
+                                    <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-gray-200/40 p-12 md:p-16 space-y-12 transition-all hover:shadow-indigo-500/5">
+                                        <div className="flex items-center gap-5 md:gap-6">
+                                            <div className="w-12 h-12 md:w-14 md:h-14 bg-indigo-600 rounded-[1.25rem] flex items-center justify-center text-white text-2xl md:text-3xl shadow-xl shadow-indigo-600/20 shrink-0">💰</div>
+                                            <div>
+                                                <h2 className="text-3xl md:text-4xl font-black text-graphite tracking-tight leading-none">Costos y Rentabilidad</h2>
+                                                <p className="text-gray-500 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-2">Estructura de precios y márgenes</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                                            <div className="space-y-12">
+                                                <div>
+                                                    <label className="block text-xs font-black text-gray-500 mb-5 uppercase tracking-[0.2em] ml-1 text-center md:text-left">Costo Base de Producción / Compra</label>
+                                                    <div className="relative group">
+                                                        <span className="absolute left-8 top-1/2 -translate-y-1/2 text-3xl font-black text-gray-200 group-focus-within:text-indigo-600 transition-colors">$</span>
+                                                        <input
+                                                            type="text"
+                                                            value={basePrice}
+                                                            onChange={(e) => {
+                                                                const base = e.target.value;
+                                                                const b = parseFloat(base) || 0;
+                                                                const m = parseFloat(markup) || 0;
+                                                                let final = '0';
+                                                                if (markupType === 'percentage') final = (b + (b * m / 100)).toFixed(2);
+                                                                else final = (b + m).toFixed(2);
+                                                                setBasePrice(base);
+                                                                setPrice(final);
+                                                            }}
+                                                            className="w-full pl-12 md:pl-20 pr-6 md:pr-10 py-6 md:py-8 bg-gray-50/50 focus:bg-white border-2 border-gray-100 focus:border-indigo-600 rounded-[2rem] font-black text-3xl md:text-5xl text-graphite outline-none transition-all shadow-sm"
+                                                            placeholder="0.00"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-xs font-black text-gray-500 mb-5 uppercase tracking-[0.2em] ml-1">Margen de Ganancia</label>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="relative flex-1">
+                                                            <span className="absolute right-6 top-1/2 -translate-y-1/2 text-xl font-black text-pink-hot">
+                                                                {markupType === 'percentage' ? '%' : '$'}
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                value={markup}
+                                                                onChange={(e) => {
+                                                                    const mark = e.target.value;
+                                                                    const b = parseFloat(basePrice) || 0;
+                                                                    const m = parseFloat(mark) || 0;
+                                                                    let final = '0';
+                                                                    if (markupType === 'percentage') final = (b + (b * m / 100)).toFixed(2);
+                                                                    else final = (b + m).toFixed(2);
+                                                                    setMarkup(mark);
+                                                                    setPrice(final);
+                                                                }}
+                                                                className="w-full px-6 md:px-10 py-4 md:py-6 bg-gray-50/50 focus:bg-white border-2 border-gray-100 focus:border-pink-hot rounded-[2rem] font-black text-3xl md:text-5xl text-pink-hot outline-none transition-all shadow-sm focus:shadow-pink-500/5"
+                                                            />
+                                                        </div>
+                                                        <div className="flex bg-gray-100/50 p-2.5 rounded-[1.75rem] border border-gray-100 h-[96px] shrink-0">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const b = parseFloat(basePrice) || 0;
+                                                                    const m = parseFloat(markup) || 0;
+                                                                    const final = (b + (b * m / 100)).toFixed(2);
+                                                                    setMarkupType('percentage');
+                                                                    setPrice(final);
+                                                                }}
+                                                                className={`px-8 text-sm font-black rounded-2xl transition-all ${markupType === 'percentage' ? 'bg-pink-hot text-white shadow-xl shadow-pink-500/30' : 'text-gray-500 hover:text-gray-600'}`}
+                                                            >%</button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const b = parseFloat(basePrice) || 0;
+                                                                    const m = parseFloat(markup) || 0;
+                                                                    const final = (b + m).toFixed(2);
+                                                                    setMarkupType('manual');
+                                                                    setPrice(final);
+                                                                }}
+                                                                className={`px-8 text-sm font-black rounded-2xl transition-all ${markupType === 'manual' ? 'bg-teal text-white shadow-xl shadow-teal-500/30' : 'text-gray-500 hover:text-gray-600'}`}
+                                                            >$</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col justify-between space-y-12">
+                                                <div>
+                                                    <label className="block text-xs font-black text-gray-500 mb-5 uppercase tracking-[0.2em] ml-1 text-center md:text-left">Stock Inicial Disponible</label>
+                                                    <input
+                                                        type="text"
+                                                        value={stock}
+                                                        onChange={(e) => setStock(e.target.value)}
+                                                        className="w-full px-10 py-7 bg-gray-50/50 focus:bg-white border-2 border-gray-100 focus:border-teal rounded-[1.75rem] font-black text-5xl text-center text-graphite outline-none transition-all shadow-sm"
+                                                        placeholder="0"
+                                                    />
+                                                </div>
+
+                                                <div className="bg-graphite p-12 rounded-[2.5rem] shadow-[0px_30px_60px_-15px_rgba(0,0,0,0.3)] flex flex-col items-center md:items-start justify-center overflow-hidden relative">
+                                                    <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 -mr-20 -mt-20 rounded-full blur-3xl opacity-50" />
+                                                    <span className="text-xs font-black uppercase text-gray-500 tracking-[0.3em] mb-4 relative z-10">Precio Final sugerido</span>
+                                                    <div className="flex items-baseline gap-4 relative z-10">
+                                                        <span className="text-2xl md:text-3xl font-black text-teal">$</span>
+                                                        <span className="text-5xl md:text-7xl font-black text-white tabular-nums tracking-tighter drop-shadow-lg">{price}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+                                )}
+                            </div>
+
+                            {/* RIGHT COLUMN: Media */}
+                            <div className="lg:col-span-4 space-y-12">
+                                {/* Images Card */}
+                                <section className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl shadow-gray-200/40 p-10 space-y-12 sticky top-12 transition-all hover:shadow-teal/5">
+                                    <div className="flex items-center gap-5 md:gap-6">
+                                        <div className="w-12 h-16 md:w-14 md:h-20 bg-teal rounded-[1.25rem] flex items-center justify-center text-white text-2xl md:text-3xl shadow-xl shadow-teal-500/20 shrink-0">📸</div>
+                                        <div>
+                                            <h2 className="text-3xl md:text-4xl font-black text-graphite tracking-tight leading-none">Galería Multimedia</h2>
+                                            <p className="text-gray-600 font-bold text-[10px] md:text-xs uppercase tracking-widest mt-2">Visualización premium del producto</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-8">
+                                        <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1 text-center">Imagen de Portada</label>
+                                        <div className="relative group aspect-[4/5] bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2.5rem] flex items-center justify-center overflow-hidden transition-all hover:border-teal/50 hover:bg-teal/[0.02] shadow-sm">
+                                            {mainImagePreview ? (
+                                                <>
+                                                    <img src={mainImagePreview} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                    <div className="absolute inset-0 bg-graphite/60 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[2px] flex items-center justify-center">
+                                                        <label className="px-6 py-3 bg-white text-graphite text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl cursor-pointer shadow-2xl active:scale-95 transition-all">
+                                                            Sustituir Imagen
+                                                            <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (file) {
+                                                                    setMainImageFile(file);
+                                                                    const reader = new FileReader();
+                                                                    reader.onloadend = () => setMainImagePreview(reader.result as string);
+                                                                    reader.readAsDataURL(file);
+                                                                }
+                                                            }} />
+                                                        </label>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <label className="flex flex-col items-center cursor-pointer p-8 text-center group/label">
+                                                    <div className="w-20 h-20 bg-white shadow-xl shadow-gray-200/50 rounded-[2rem] flex items-center justify-center text-4xl mb-6 transition-transform group-hover/label:scale-110 group-hover/label:rotate-3 duration-300">🖼️</div>
+                                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Cargar Fotografía</span>
+                                                    <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-2 px-6">Formatos sugeridos: JPG, PNG • Máx 5MB</p>
+                                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            setMainImageFile(file);
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => setMainImagePreview(reader.result as string);
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }} />
+                                                </label>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Gallery */}
+                                    <div className="space-y-4">
+                                        <label className="block text-xs font-black text-gray-500 uppercase tracking-widest ml-1">Galería de Fotos</label>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {galleryImagePreviews.map((preview, idx) => (
+                                                <div key={idx} className="relative aspect-square border-2 border-gray-100 rounded-2xl overflow-hidden group">
+                                                    <img src={preview} className="w-full h-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setGalleryImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                                                            setGalleryImageFiles(prev => prev.filter((_, i) => i !== idx));
+                                                        }}
+                                                        className="absolute top-2 right-2 bg-red-pink text-white rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-all shadow-md active:scale-90"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <label className="aspect-square border-2 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-teal/30 hover:bg-teal/5 transition-all text-gray-400 hover:text-teal font-black uppercase text-xs tracking-widest gap-3 shadow-sm">
+                                                <span className="text-3xl">➕</span>
+                                                Subir
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const files = Array.from(e.target.files || []);
+                                                        if (files.length > 0) {
+                                                            setGalleryImageFiles(prev => [...prev, ...files]);
+                                                            files.forEach(file => {
+                                                                const reader = new FileReader();
+                                                                reader.onloadend = () => setGalleryImagePreviews(prev => [...prev, reader.result as string]);
+                                                                reader.readAsDataURL(file);
+                                                            });
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                            {/* Variants / Attributes Section */}
+                            {!isPromo && !isCombo && (
+                                <section className="pt-20 space-y-14 animate-in fade-in slide-in-from-bottom-8 duration-700 col-span-1 lg:col-span-12">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-gray-100 pb-10">
+                                        <div className="flex items-center gap-5 md:gap-6">
+                                            <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl md:rounded-3xl flex items-center justify-center text-2xl md:text-3xl shadow-2xl shadow-rose-500/20 shrink-0 text-white">🌈</div>
+                                            <div>
+                                                <h3 className="text-3xl md:text-5xl font-black text-graphite tracking-tight uppercase">Dimensiones y Variantes</h3>
+                                                <p className="text-[10px] md:text-sm font-bold text-gray-500 uppercase tracking-[0.3em] mt-2 md:mt-3 ml-1">Configura tallas, colores o atributos específicos</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Step 1: Attribute Types */}
+                                    <div className="bg-white rounded-[1rem] border-2 border-graphite shadow-[12px_12px_0px_0px_#F2F2F2] p-16 md:p-24 space-y-16">
+                                        <div className="flex items-center gap-8">
+                                            <span className="w-16 h-16 bg-graphite text-white rounded-3xl flex items-center justify-center font-black text-2xl shadow-xl shadow-graphite/20">01</span>
+                                            <h4 className="text-3xl font-black text-graphite uppercase tracking-[0.2em]">Seleccionar Dimensiones</h4>
+                                        </div>
+                                        <div className="flex flex-wrap gap-4">
                                             {allAttributes.map(attr => (
                                                 <button
                                                     key={attr.id}
@@ -718,379 +774,338 @@ export default function ProductForm() {
                                                             setProductAttributes(prev => [...prev, attr.id]);
                                                         }
                                                     }}
-                                                    className={`px-5 py-3 sm:px-8 sm:py-4 md:px-10 md:py-5 rounded-2xl font-black uppercase tracking-widest text-xs sm:text-sm md:text-base transition-all border-4 ${productAttributes.includes(attr.id)
-                                                        ? 'bg-indigo-600 text-white border-indigo-800 shadow-[4px_4px_0px_0px_#333] -translate-y-0.5 sm:-translate-y-1'
-                                                        : 'bg-white text-indigo-400 border-indigo-200 hover:border-indigo-500 hover:text-indigo-700 hover:shadow-md'}`}
+                                                    className={`px-12 py-8 rounded-[1.5rem] font-black uppercase tracking-widest text-base transition-all border-2 ${productAttributes.includes(attr.id)
+                                                        ? 'bg-pink-hot border-graphite text-white shadow-[8px_8px_0px_0px_#333] -translate-y-2'
+                                                        : 'bg-gray-50 border-gray-100 text-gray-500 hover:border-pink-hot/30 hover:text-pink-hot'}`}
                                                 >
                                                     {productAttributes.includes(attr.id) ? '✓ ' : ''}{attr.name}
                                                 </button>
                                             ))}
                                             <Link
                                                 to="/admin/catalog"
-                                                className="px-10 py-5 rounded-2xl font-black uppercase tracking-widest text-xs bg-white text-gray-400 border-2 border-dashed border-gray-300 hover:bg-gray-50 hover:text-gray-600 transition-all flex items-center gap-2"
+                                                className="px-8 md:px-12 py-6 md:py-8 rounded-[1.5rem] font-black uppercase tracking-[0.25em] text-[10px] md:text-xs bg-white text-gray-500 border-2 border-dashed border-gray-100 hover:border-teal hover:text-teal hover:bg-teal/[0.02] transition-all flex items-center gap-4 md:gap-6 active:scale-95 shadow-sm"
                                             >
-                                                + Gestionar Clases
+                                                <span className="text-2xl md:text-3xl">➕</span> Configurar Clases
                                             </Link>
                                         </div>
                                     </div>
 
-                                    {/* Step 2: Configure values for each selected attribute */}
-                                    {productAttributes.length > 0 && (() => {
-                                        const COLORS = [
-                                            { header: '#4f46e5', headerText: '#e0e7ff', light: '#eef2ff', border: '#a5b4fc', chip: '#c7d2fe', chipText: '#3730a3' },
-                                            { header: '#7c3aed', headerText: '#ede9fe', light: '#f5f3ff', border: '#c4b5fd', chip: '#ddd6fe', chipText: '#5b21b6' },
-                                            { header: '#9d174d', headerText: '#fce7f3', light: '#fdf2f8', border: '#f9a8d4', chip: '#fbcfe8', chipText: '#831843' },
-                                            { header: '#0d9488', headerText: '#ccfbf1', light: '#f0fdfa', border: '#5eead4', chip: '#99f6e4', chipText: '#115e59' },
-                                        ];
-                                        return (
-                                            <div className="space-y-10">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center font-black text-sm shrink-0">2</span>
-                                                    <p className="text-sm font-black text-indigo-700 uppercase tracking-widest">Activa y configura cada variante</p>
-                                                </div>
-                                                {productAttributes.map((attrId, attrIdx) => {
-                                                    const attr = allAttributes.find(a => a.id === attrId);
-                                                    const c = COLORS[attrIdx % COLORS.length];
-                                                    if (!attr) return null;
-                                                    return (
-                                                        <div key={attr.id} style={{ borderColor: c.border, background: '#fff' }} className="rounded-2xl md:rounded-3xl border-2 overflow-hidden shadow-md">
-                                                            {/* Attribute Header */}
-                                                            <div style={{ background: c.header }} className="px-4 sm:px-6 md:px-8 py-4 md:py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                                                <div className="flex items-center gap-3">
-                                                                    <span style={{ color: c.headerText }} className="font-black uppercase tracking-widest text-base sm:text-lg md:text-xl">{attr.name}</span>
-                                                                    <span style={{ color: c.headerText }} className="text-xs sm:text-sm font-bold opacity-70">({attr.values.length} variantes)</span>
-                                                                </div>
-                                                                {/* Add new value input */}
-                                                                <div className="flex gap-2 items-center">
-                                                                    <div className="relative flex-1 sm:flex-none">
-                                                                        <input
-                                                                            id={`add-input-${attr.id}`}
-                                                                            type="text"
-                                                                            placeholder={`+ Nueva variante...`}
-                                                                            className="pl-4 pr-10 py-2 sm:py-2.5 bg-white/15 border border-white/40 rounded-xl text-white placeholder-white/60 text-sm font-bold outline-none focus:bg-white/25 focus:border-white transition-all w-full sm:w-44 md:w-48"
-                                                                            onKeyDown={async (e) => {
-                                                                                if (e.key === 'Enter') {
-                                                                                    e.preventDefault();
-                                                                                    const inputEl = e.target as HTMLInputElement;
-                                                                                    const val = inputEl.value;
-                                                                                    if (!val) return;
-                                                                                    try {
-                                                                                        const { data } = await api.post(`/admin/attributes/${attr.id}/values`, { name: val });
-                                                                                        const updatedAttrs = allAttributes.map(a =>
-                                                                                            a.id === attr.id ? { ...a, values: [...a.values, data] } : a
-                                                                                        );
-                                                                                        setAllAttributes(updatedAttrs);
-                                                                                        inputEl.value = '';
-                                                                                        setConfiguringValue({ id: data.id, name: data.name, basePrice: '0', markup: '30', markupType: 'percentage', price: '0', stock: '0' });
-                                                                                    } catch (err) { console.error(err); }
-                                                                                }
-                                                                            }}
-                                                                        />
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={async () => {
-                                                                                const inputEl = document.getElementById(`add-input-${attr.id}`) as HTMLInputElement;
-                                                                                const val = inputEl?.value;
-                                                                                if (!val) return;
-                                                                                try {
-                                                                                    const { data } = await api.post(`/admin/attributes/${attr.id}/values`, { name: val });
-                                                                                    const updatedAttrs = allAttributes.map(a =>
-                                                                                        a.id === attr.id ? { ...a, values: [...a.values, data] } : a
-                                                                                    );
-                                                                                    setAllAttributes(updatedAttrs);
-                                                                                    inputEl.value = '';
-                                                                                    setConfiguringValue({ id: data.id, name: data.name, basePrice: '0', markup: '30', markupType: 'percentage', price: '0', stock: '0' });
-                                                                                } catch (err) { console.error(err); }
-                                                                            }}
-                                                                            className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-white/20 text-white rounded-lg flex items-center justify-center hover:bg-pink-hot transition-all"
-                                                                        >
-                                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
+                                    {/* Step 2: Attribute Values Configuration */}
+                                    {productAttributes.length > 0 && (
+                                        <div className="space-y-12 animate-in fade-in slide-in-from-top-4">
+                                            <div className="flex items-center gap-6 ml-2">
+                                                <span className="w-12 h-12 bg-teal text-white rounded-2xl flex items-center justify-center font-black text-xl shadow-lg shadow-teal-500/20">02</span>
+                                                <h4 className="text-2xl font-black text-graphite uppercase tracking-widest">Asignar Variantes Específicas</h4>
+                                            </div>
+
+                                            {productAttributes.map((attrId) => {
+                                                const attr = allAttributes.find(a => a.id === attrId);
+                                                if (!attr) return null;
+                                                return (
+                                                    <div key={attr.id} className="bg-white rounded-1xl border border-gray-100 shadow-xl shadow-gray-200/40 overflow-hidden transition-all hover:shadow-2xl hover:shadow-gray-200/60">
+                                                        <div className="bg-graphite p-8 md:px-20 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+                                                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 -mr-32 -mt-32 rounded-full blur-3xl" />
+                                                            <div className="flex items-center gap-5 relative z-10">
+                                                                <h5 className="text-white font-black uppercase tracking-[0.3em] text-base">{attr.name}</h5>
+                                                                <span className="px-5 py-2 bg-white/10 rounded-full text-[10px] font-black text-white/50 uppercase tracking-widest">{attr.values.length} Disponibles</span>
                                                             </div>
-
-                                                            {/* Values Grid */}
-                                                            <div style={{ background: c.light }} className="p-4 sm:p-6 md:p-8">
-                                                                {attr.values.length === 0 ? (
-                                                                    <p className="text-center text-sm font-bold uppercase opacity-40 py-4">Sin variantes — escribe arriba y Enter</p>
-                                                                ) : (
-                                                                    <div className="flex flex-wrap gap-2 sm:gap-3 md:gap-4">
-                                                                        {attr.values.map((val: any) => {
-                                                                            const config = productAttributeValues.find(v => v.id === val.id);
-                                                                            const isSelected = !!config;
-                                                                            const nameLow = val.name.toLowerCase().trim();
-                                                                            const isRound = nameLow.includes('redon') || nameLow.includes('circ') || nameLow.includes('round') || nameLow.includes('esfer') || nameLow.includes('bola') || nameLow.includes('botón') || nameLow.includes('disco');
-                                                                            const isTriangle = nameLow.includes('trian') || nameLow.includes('delta');
-                                                                            const isSquare = nameLow.includes('cuad') || nameLow.includes('squar') || nameLow.includes('rect') || nameLow.includes('box');
-                                                                            const isStar = nameLow.includes('estre') || nameLow.includes('star');
-                                                                            const isHeart = nameLow.includes('cora') || nameLow.includes('heart');
-                                                                            const shapeIcon = getShapeIcon(val.name);
-
-                                                                            return (
-                                                                                <button
-                                                                                    key={val.id}
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        if (isSelected) {
-                                                                                            if (config) setConfiguringValue({ ...config });
-                                                                                        } else {
-                                                                                            const newConfig: VariantConfig = { id: val.id, name: val.name, basePrice: '0', markup: '30', markupType: 'percentage', price: '0', stock: '0' };
-                                                                                            setConfiguringValue(newConfig);
-                                                                                        }
-                                                                                    }}
-                                                                                    style={{
-                                                                                        borderRadius: isRound ? '50%' : isTriangle ? '0' : '14px',
-                                                                                        aspectRatio: isRound || isTriangle || isSquare || isStar || isHeart ? '1/1' : undefined,
-                                                                                        clipPath: isTriangle ? 'polygon(50% 0%, 0% 100%, 100% 100%)' : 'none',
-                                                                                        background: isSelected ? c.header : '#fff',
-                                                                                        borderColor: isSelected ? c.header : c.border,
-                                                                                        color: isSelected ? '#fff' : c.header,
-                                                                                        boxShadow: isSelected ? '4px 4px 0px 0px #333' : 'none',
-                                                                                    }}
-                                                                                    className={`font-black transition-all border-2 flex items-center justify-center gap-1 relative hover:opacity-80 ${isRound || isTriangle || isSquare || isStar || isHeart ? 'w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 text-[9px] sm:text-xs flex-col p-1 sm:p-2' : 'px-3 py-2 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-xl text-xs sm:text-sm md:text-base'}`}
-                                                                                >
-                                                                                    {shapeIcon && <div className="opacity-60 mb-1">{shapeIcon}</div>}
-                                                                                    <span className="truncate max-w-full">{val.name}</span>
-                                                                                    {isSelected && !isRound && !isTriangle && !isSquare && !isStar && !isHeart && (
-                                                                                        <span className="ml-2 bg-white/20 px-1.5 rounded text-xs">✓</span>
-                                                                                    )}
-                                                                                    {isSelected && (isRound || isTriangle || isSquare || isStar || isHeart) && (
-                                                                                        <div className="absolute top-0 right-0 w-4 h-4 bg-pink-hot rounded-full border-2 border-white" />
-                                                                                    )}
-                                                                                </button>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                )}
-                                                                {/* Selected variants summary */}
-                                                                {productAttributeValues.filter(v => attr.values.some((av: any) => av.id === v.id)).length > 0 && (
-                                                                    <div style={{ borderColor: c.border }} className="mt-6 pt-6 border-t-2">
-                                                                        <p className="text-xs font-black uppercase tracking-widest mb-3 opacity-60">Variantes configuradas:</p>
-                                                                        <div className="flex flex-wrap gap-3">
-                                                                            {productAttributeValues.filter(v => attr.values.some((av: any) => av.id === v.id)).map(v => (
-                                                                                <div key={v.id} style={{ background: c.chip, borderColor: c.border, color: c.chipText }} className="flex items-center gap-2 border rounded-2xl px-4 py-2.5">
-                                                                                    <span className="text-sm font-black">{v.name}</span>
-                                                                                    <span className="text-xs font-bold opacity-60">💲{v.price} · 📦{v.stock}</span>
-                                                                                    <button type="button" onClick={() => setProductAttributeValues(prev => prev.filter(pv => pv.id !== v.id))} className="text-red-400 hover:text-red-600 transition-colors ml-1 font-black">✕</button>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                )}
+                                                            <div className="relative group relative z-10">
+                                                                <input
+                                                                    id={`quick-add-${attr.id}`}
+                                                                    type="text"
+                                                                    placeholder={`Agregar ${attr.name.toLowerCase()} rápidamente...`}
+                                                                    className="pl-10 md:pl-12 pr-16 md:pr-20 py-6 md:py-8 bg-white/5 border border-white/10 rounded-[2rem] text-white placeholder-white/20 text-base md:text-lg font-bold outline-none focus:bg-white/10 focus:border-teal/50 transition-all w-full md:w-[500px]"
+                                                                    onKeyDown={async (e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            e.preventDefault();
+                                                                            const input = e.target as HTMLInputElement;
+                                                                            if (!input.value) return;
+                                                                            try {
+                                                                                const { data } = await api.post(`/admin/attributes/${attr.id}/values`, { name: input.value });
+                                                                                setAllAttributes(prev => prev.map(a => a.id === attr.id ? { ...a, values: [...a.values, data] } : a));
+                                                                                input.value = '';
+                                                                            } catch (err) { console.error(err); }
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <div className="absolute right-5 top-1/2 -translate-y-1/2 text-white/10 group-focus-within:text-teal transition-colors">
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
+
+                                                        <div className="p-12 md:p-14 bg-[#FDFDFD]">
+                                                            <div className="flex flex-wrap gap-3">
+                                                                {attr.values.map((val: any) => {
+                                                                    const config = productAttributeValues.find(v => v.id === val.id);
+                                                                    const isActive = !!config;
+                                                                    return (
+                                                                        <button
+                                                                            key={val.id}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (isActive) {
+                                                                                    setConfiguringValue({ ...config });
+                                                                                } else {
+                                                                                    setConfiguringValue({ id: val.id, name: val.name, basePrice: '0', markup: '30', markupType: 'percentage', price: '0', stock: '0' });
+                                                                                }
+                                                                            }}
+                                                                            className={`px-16 py-9 rounded-[2rem] border-2 transition-all font-black uppercase text-base tracking-[0.2em] relative overflow-hidden group/btn ${isActive
+                                                                                ? 'bg-teal border-transparent text-white shadow-xl shadow-teal-500/30 -translate-y-2'
+                                                                                : 'bg-white border-gray-100 text-gray-500 hover:border-teal/50 hover:text-teal hover:shadow-xl hover:-translate-y-2'}`}
+                                                                        >
+                                                                            {isActive && <div className="absolute inset-x-0 bottom-0 h-2.5 bg-white/30" />}
+                                                                            {isActive ? '✓ ' : ''}{val.name}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+
+                                                            {/* Selected Summary for this attribute */}
+                                                            {productAttributeValues.filter(v => attr.values.some((av: any) => av.id === v.id)).length > 0 && (
+                                                                <div className="mt-8 pt-6 border-t-2 border-dashed border-gray-100">
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                                        {productAttributeValues.filter(v => attr.values.some((av: any) => av.id === v.id)).map(v => (
+                                                                            <div key={v.id} className="bg-white p-6 rounded-[1.5rem] border-2 border-gray-50 flex items-center justify-between group hover:border-pink-hot/30 hover:shadow-lg transition-all">
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="text-sm font-black text-graphite uppercase tracking-tight">{v.name}</span>
+                                                                                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mt-1">${v.price} · {v.stock} u.</span>
+                                                                                </div>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => setProductAttributeValues(prev => prev.filter(pv => pv.id !== v.id))}
+                                                                                    className="w-8 h-8 rounded-lg bg-red-pink/5 text-red-pink opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                                                                                >
+                                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                                                                                </button>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </section>
                             )}
 
-                            <div className="flex flex-col sm:flex-row gap-6 pt-12 md:pt-16 border-t-[6px] border-gray-100">
+                             <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 mt-20 md:mt-32 pt-16 md:pt-24 mb-12 md:mb-16 border-t-4 border-gray-100 col-span-1 lg:col-span-12">
                                 <Link
                                     to="/admin/products"
-                                    className="flex-1 py-6 md:py-8 px-8 bg-white hover:bg-gray-50 text-graphite font-black uppercase tracking-widest text-base md:text-lg rounded-2xl border-[4px] border-graphite text-center transition-all active:translate-y-1 shadow-[4px_4px_0px_0px_#333] hover:shadow-none"
+                                    className="w-full md:w-auto px-16 md:px-24 py-8 md:py-11 bg-white border-4 border-gray-100 text-gray-500 font-black uppercase tracking-[0.3em] text-xs md:text-sm rounded-[2.5rem] hover:bg-gray-50 hover:text-graphite hover:border-graphite shadow-sm active:scale-95 transition-all text-center"
                                 >
-                                    Cancelar
+                                    Descartar y Volver
                                 </Link>
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="flex-[2] py-6 md:py-8 px-8 bg-teal hover:bg-teal-600 text-white font-black uppercase tracking-widest text-base md:text-lg rounded-2xl border-[4px] border-graphite shadow-[8px_8px_0px_0px_#333] md:shadow-[12px_12px_0px_0px_#333] hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-[4px_4px_0px_0px_#333] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full md:min-w-[700px] py-10 md:py-13 px-16 md:px-32 bg-teal hover:bg-teal-600 text-white font-black uppercase tracking-[0.3em] md:tracking-[0.5em] text-lg md:text-xl rounded-[3rem] shadow-[0px_40px_80px_-20px_rgba(20,184,166,0.5)] md:shadow-[0px_60px_120px_-20px_rgba(20,184,166,0.6)] hover:-translate-y-3 active:scale-95 transition-all disabled:opacity-50"
                                 >
-                                    {isLoading ? 'Guardando...' : (isEditing ? 'Actualizar Inventario' : 'Finalizar Carga')}
+                                    {isLoading ? 'Guardando catálogo...' : (isEditing ? 'Actualizar Información Ahora' : 'Publicar Producto Ahora')}
                                 </button>
                             </div>
-                        </form>
+
+                            {/* Guaranteed white spacer at the very bottom */}
+                            <div className="h-64 col-span-1 lg:col-span-12" aria-hidden="true" />
+                        </div>
+                    </form>
+                </div>
+
+                <div style={{ display: 'none' }}>
+                    <div ref={barcodeRef} className="p-10 flex flex-col items-center bg-white text-black">
+                        <h3 className="text-2xl font-black mb-2 uppercase">{name}</h3>
+                        <Barcode value={barcode || '0'} format="CODE128" width={2} height={80} displayValue={true} />
                     </div>
                 </div>
-            </div>
 
-            {/* Print Barcode Section */}
-            <div style={{ display: 'none' }}>
-                <div ref={barcodeRef} className="p-10 flex flex-col items-center bg-white text-black">
-                    <h3 className="text-2xl font-black mb-2 uppercase">{name}</h3>
-                    <Barcode value={barcode || '0'} format="CODE128" width={2} height={80} displayValue={true} />
-                </div>
-            </div>
+                {configuringValue && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-graphite/60 backdrop-blur-md p-4 animate-in fade-in duration-500">
+                        <div className="w-full max-w-lg bg-white rounded-[2.5rem] border border-gray-100 shadow-[0px_40px_100px_-20px_rgba(0,0,0,0.2)] p-10 transform transition-all animate-in zoom-in-95 duration-500 flex flex-col max-h-[90vh] overflow-hidden relative">
+                            {/* Decorative element */}
+                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-teal via-pink-hot to-indigo-600 opacity-20" />
 
-            {/* CONFIG MODAL */}
-            {configuringValue && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-graphite/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-xl bg-white rounded-[3rem] border-4 border-graphite shadow-[20px_20px_0px_0px_rgba(0,0,0,0.3)] p-10 transform transition-all animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center mb-8 border-b-2 border-indigo-50 pb-4">
-                            <h3 className="text-2xl font-black uppercase tracking-tighter text-indigo-900">
-                                Configurar: <span className="text-pink-hot">{configuringValue.name}</span>
-                            </h3>
-                            <button onClick={() => setConfiguringValue(null)} className="text-gray-300 hover:text-red-pink transition-colors">
-                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                        </div>
-
-                        <div className="space-y-8">
-                            <div className="flex flex-col items-center gap-4 bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-indigo-200">
-                                <div className="w-32 h-32 border-4 border-white rounded-3xl flex items-center justify-center overflow-hidden bg-white shadow-xl">
-                                    {configuringValue.imagePreview ? (
-                                        <img src={configuringValue.imagePreview} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <span className="text-4xl grayscale opacity-20">🖼️</span>
-                                    )}
+                            <div className="flex justify-between items-center mb-10 border-b border-gray-100 pb-8 shrink-0">
+                                <div>
+                                    <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-[0.4em] mb-2">Configuración Detallada</p>
+                                    <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter text-graphite">
+                                        Variante: <span className="text-teal">{configuringValue.name}</span>
+                                    </h2>
                                 </div>
-                                <label className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest rounded-xl cursor-pointer transition-all shadow-md">
-                                    {configuringValue.imagePreview ? 'Cambiar Foto' : 'Subir Foto'}
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => {
-                                                    setConfiguringValue({ ...configuringValue, imageFile: file, imagePreview: reader.result as string });
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        }}
-                                    />
-                                </label>
+                                <button onClick={() => setConfiguringValue(null)} className="w-12 h-12 rounded-2xl bg-gray-50 text-gray-500 hover:text-red-pink hover:bg-red-50 transition-all flex items-center justify-center shadow-sm">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
                             </div>
 
-                            <div className="bg-indigo-50/50 p-8 rounded-[2.5rem] space-y-6">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-[10px] font-black text-indigo-400 mb-2 uppercase tracking-widest">Costo Base ($)</label>
+                            <div className="flex-1 overflow-y-auto pr-3 space-y-12 custom-scrollbar">
+                                <div className="flex flex-col items-center gap-6 md:gap-8 bg-gray-50/50 p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-gray-100">
+                                    <div className="w-32 h-32 md:w-40 md:h-40 border-6 md:border-8 border-white rounded-2xl md:rounded-[2.5rem] flex items-center justify-center overflow-hidden bg-white shadow-2xl relative group">
+                                        {configuringValue.imagePreview ? (
+                                            <img src={configuringValue.imagePreview} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
+                                        ) : (
+                                            <div className="flex flex-col items-center">
+                                                <span className="text-6xl grayscale opacity-20 mb-3">📸</span>
+                                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Sin Foto</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <label className="px-12 py-4 bg-teal text-white text-xs font-black uppercase tracking-[0.25em] rounded-2xl cursor-pointer transition-all shadow-xl shadow-teal-500/30 hover:bg-teal-600 active:scale-95">
+                                        {configuringValue.imagePreview ? 'Cambiar Imagen' : 'Vincular Fotografía'}
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        setConfiguringValue({ ...configuringValue, imageFile: file, imagePreview: reader.result as string });
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+
+                                <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] space-y-8 md:space-y-10 border border-gray-100 shadow-sm relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 -mr-16 -mt-16 rounded-full blur-2xl" />
+
+                                    <div className="grid grid-cols-2 gap-8 relative z-10">
+                                        <div className="space-y-5">
+                                            <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Costo Base ($)</label>
+                                            <input
+                                                type="text"
+                                                value={configuringValue.basePrice}
+                                                onChange={(e) => {
+                                                    const base = e.target.value;
+                                                    const mark = configuringValue.markup;
+                                                    const type = configuringValue.markupType;
+                                                    let final = '0';
+                                                    const b = parseFloat(base) || 0;
+                                                    const m = parseFloat(mark) || 0;
+                                                    if (type === 'percentage') final = (b + (b * m / 100)).toFixed(2);
+                                                    else final = (b + m).toFixed(2);
+                                                    setConfiguringValue({ ...configuringValue, basePrice: base, price: final });
+                                                }}
+                                                className="w-full px-6 md:px-8 py-4 md:py-5 bg-gray-50/50 border-2 border-gray-50 focus:border-indigo-500 rounded-2xl md:rounded-3xl font-black text-xl md:text-2xl text-graphite outline-none transition-all"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col space-y-5">
+                                            <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Rentabilidad</label>
+                                            <div className="flex bg-gray-50/80 rounded-[1.75rem] border border-gray-100 p-2 h-[80px]">
+                                                <button
+                                                    onClick={() => {
+                                                        const base = configuringValue.basePrice;
+                                                        const mark = configuringValue.markup;
+                                                        const b = parseFloat(base) || 0;
+                                                        const m = parseFloat(mark) || 0;
+                                                        const final = (b + (b * m / 100)).toFixed(2);
+                                                        setConfiguringValue({ ...configuringValue, markupType: 'percentage', price: final });
+                                                    }}
+                                                    className={`flex-1 text-[11px] font-black rounded-[1.25rem] uppercase tracking-widest transition-all ${configuringValue.markupType === 'percentage' ? 'bg-pink-hot text-white shadow-xl shadow-pink-500/30' : 'text-gray-500 hover:text-pink-hot/50'}`}
+                                                >Porcentual</button>
+                                                <button
+                                                    onClick={() => {
+                                                        const base = configuringValue.basePrice;
+                                                        const mark = configuringValue.markup;
+                                                        const b = parseFloat(base) || 0;
+                                                        const m = parseFloat(mark) || 0;
+                                                        const final = (b + m).toFixed(2);
+                                                        setConfiguringValue({ ...configuringValue, markupType: 'manual', price: final });
+                                                    }}
+                                                    className={`flex-1 text-[11px] font-black rounded-[1.25rem] uppercase tracking-widest transition-all ${configuringValue.markupType === 'manual' ? 'bg-teal text-white shadow-xl shadow-teal-500/30' : 'text-gray-500 hover:text-teal/50'}`}
+                                                >Fija ($)</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-5">
+                                        <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">
+                                            Ganancia {configuringValue.markupType === 'percentage' ? 'Aplicada (%)' : 'Cargada ($)'}
+                                        </label>
                                         <input
                                             type="text"
-                                            value={configuringValue.basePrice}
+                                            value={configuringValue.markup}
                                             onChange={(e) => {
-                                                const base = e.target.value;
-                                                const mark = configuringValue.markup;
+                                                const mark = e.target.value;
+                                                const base = configuringValue.basePrice;
                                                 const type = configuringValue.markupType;
                                                 let final = '0';
                                                 const b = parseFloat(base) || 0;
                                                 const m = parseFloat(mark) || 0;
                                                 if (type === 'percentage') final = (b + (b * m / 100)).toFixed(2);
                                                 else final = (b + m).toFixed(2);
-                                                setConfiguringValue({ ...configuringValue, basePrice: base, price: final });
+                                                setConfiguringValue({ ...configuringValue, markup: mark, price: final });
                                             }}
-                                            className="w-full px-5 py-3 bg-white border-2 border-indigo-100 rounded-2xl font-black text-xl text-graphite focus:border-indigo-600 outline-none"
-                                            placeholder="0.00"
+                                            className="w-full px-6 md:px-10 py-4 md:py-6 bg-gray-50/50 border-2 border-gray-50 focus:border-pink-hot rounded-[1.5rem] font-black text-3xl md:text-5xl text-pink-hot outline-none transition-all shadow-sm"
                                         />
                                     </div>
-                                    <div className="flex flex-col">
-                                        <label className="block text-[10px] font-black text-indigo-400 mb-2 uppercase tracking-widest">Tipo Margen</label>
-                                        <div className="flex bg-white rounded-2xl border-2 border-indigo-100 p-1">
-                                            <button
-                                                onClick={() => {
-                                                    const base = configuringValue.basePrice;
-                                                    const mark = configuringValue.markup;
-                                                    const b = parseFloat(base) || 0;
-                                                    const m = parseFloat(mark) || 0;
-                                                    const final = (b + (b * m / 100)).toFixed(2);
-                                                    setConfiguringValue({ ...configuringValue, markupType: 'percentage', price: final });
-                                                }}
-                                                className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all ${configuringValue.markupType === 'percentage' ? 'bg-indigo-600 text-white shadow-md' : 'text-indigo-300'}`}
-                                            >%</button>
-                                            <button
-                                                onClick={() => {
-                                                    const base = configuringValue.basePrice;
-                                                    const mark = configuringValue.markup;
-                                                    const b = parseFloat(base) || 0;
-                                                    const m = parseFloat(mark) || 0;
-                                                    const final = (b + m).toFixed(2);
-                                                    setConfiguringValue({ ...configuringValue, markupType: 'manual', price: final });
-                                                }}
-                                                className={`flex-1 py-2 text-[10px] font-black rounded-xl transition-all ${configuringValue.markupType === 'manual' ? 'bg-teal text-white shadow-md' : 'text-indigo-300'}`}
-                                            >$</button>
+
+                                    <div className="space-y-5">
+                                        <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.2em] ml-1">Control de Stock</label>
+                                        <input
+                                            type="text"
+                                            value={configuringValue.stock}
+                                            onChange={(e) => setConfiguringValue({ ...configuringValue, stock: e.target.value })}
+                                            className="w-full px-6 md:px-10 py-4 md:py-6 bg-gray-50/50 border-2 border-gray-50 focus:border-teal rounded-[1.5rem] font-black text-3xl md:text-5xl text-graphite outline-none transition-all shadow-sm"
+                                            placeholder="0"
+                                        />
+                                    </div>
+
+                                    <div className="pt-10 border-t border-gray-100 flex justify-between items-end text-graphite font-black">
+                                        <div>
+                                            <span className="uppercase text-xs tracking-[0.4em] text-gray-500 block mb-2">Precio de Venta Final</span>
+                                            <span className="text-4xl md:text-6xl font-black text-graphite tracking-tighter tabular-nums">${configuringValue.price}</span>
                                         </div>
+                                        <div className="w-16 h-16 bg-teal/10 rounded-2xl flex items-center justify-center text-teal text-3xl">🏷️</div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-[10px] font-black text-indigo-400 mb-2 uppercase tracking-widest">
-                                        {configuringValue.markupType === 'percentage' ? 'Porcentaje de Utilidad' : 'Ganancia Manual'}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={configuringValue.markup}
-                                        onChange={(e) => {
-                                            const mark = e.target.value;
-                                            const base = configuringValue.basePrice;
-                                            const type = configuringValue.markupType;
-                                            let final = '0';
-                                            const b = parseFloat(base) || 0;
-                                            const m = parseFloat(mark) || 0;
-                                            if (type === 'percentage') final = (b + (b * m / 100)).toFixed(2);
-                                            else final = (b + m).toFixed(2);
-                                            setConfiguringValue({ ...configuringValue, markup: mark, price: final });
+                                <div className="space-y-6 pb-10">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleConfigSave(configuringValue)}
+                                        className="w-full py-7 bg-graphite hover:bg-slate-800 text-white font-black uppercase tracking-[0.3em] text-[11px] rounded-[2rem] shadow-xl shadow-gray-400/20 active:scale-[0.98] transition-all"
+                                    >
+                                        Fijar Configuración
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            if (!window.confirm(`¿Eliminar la variante "${configuringValue.name}" permanentemente?`)) return;
+                                            try {
+                                                const parentAttr = allAttributes.find(a =>
+                                                    a.values.some((v: any) => v.id === configuringValue.id)
+                                                );
+                                                if (parentAttr) {
+                                                    await api.delete(`/admin/attributes/${parentAttr.id}/values/${configuringValue.id}`);
+                                                }
+                                                setAllAttributes(prev => prev.map(a => ({
+                                                    ...a,
+                                                    values: a.values.filter((v: any) => v.id !== configuringValue.id)
+                                                })));
+                                                setProductAttributeValues(prev => prev.filter(v => v.id !== configuringValue.id));
+                                                setConfiguringValue(null);
+                                            } catch (err) {
+                                                setProductAttributeValues(prev => prev.filter(v => v.id !== configuringValue.id));
+                                                setConfiguringValue(null);
+                                            }
                                         }}
-                                        className="w-full px-5 py-3 bg-white border-2 border-indigo-100 rounded-2xl font-black text-xl text-pink-hot focus:border-pink-hot outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-black text-indigo-400 mb-2 uppercase tracking-widest">
-                                        Stock Disponible
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={configuringValue.stock}
-                                        onChange={(e) => setConfiguringValue({ ...configuringValue, stock: e.target.value })}
-                                        className="w-full px-5 py-3 bg-white border-2 border-indigo-100 rounded-2xl font-black text-xl text-graphite focus:border-indigo-600 outline-none"
-                                        placeholder="0"
-                                    />
-                                </div>
-
-                                <div className="pt-4 border-t-2 border-indigo-100/50 flex justify-between items-center text-indigo-900 font-black">
-                                    <span className="uppercase text-xs tracking-widest">Precio Final de Venta</span>
-                                    <span className="text-3xl font-black text-teal">${configuringValue.price}</span>
+                                        className="w-full py-4 text-gray-400 font-bold uppercase tracking-[0.2em] text-[9px] hover:text-red-pink hover:bg-red-50/50 rounded-2xl transition-all flex items-center justify-center gap-3"
+                                    >
+                                        <span>🗑️</span> Eliminar Variante de la Base de Datos
+                                    </button>
                                 </div>
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={() => handleConfigSave(configuringValue)}
-                                className="w-full py-5 bg-teal text-white font-black uppercase tracking-widest rounded-3xl border-4 border-graphite shadow-[8px_8px_0px_0px_#31473E] hover:translate-y-1 hover:shadow-none transition-all mb-4"
-                            >
-                                Asignar a Variante
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={async () => {
-                                    if (!window.confirm(`¿Eliminar la variante "${configuringValue.name}" del sistema? Esta acción no se puede deshacer.`)) return;
-                                    try {
-                                        // Find parent attribute to build correct URL
-                                        const parentAttr = allAttributes.find(a =>
-                                            a.values.some((v: any) => v.id === configuringValue.id)
-                                        );
-                                        if (parentAttr) {
-                                            await api.delete(`/admin/attributes/${parentAttr.id}/values/${configuringValue.id}`);
-                                        }
-                                        // Remove from all attributes list (UI disappears)
-                                        setAllAttributes(prev => prev.map(a => ({
-                                            ...a,
-                                            values: a.values.filter((v: any) => v.id !== configuringValue.id)
-                                        })));
-                                        // Remove from product selection
-                                        setProductAttributeValues(prev => prev.filter(v => v.id !== configuringValue.id));
-                                        setConfiguringValue(null);
-                                    } catch (err) {
-                                        console.error('Error eliminando variante:', err);
-                                        setProductAttributeValues(prev => prev.filter(v => v.id !== configuringValue.id));
-                                        setConfiguringValue(null);
-                                    }
-                                }}
-                                className="w-full py-4 text-red-pink font-black uppercase tracking-widest text-xs hover:bg-red-50 rounded-2xl transition-all"
-                            >
-                                🗑️ Eliminar Variante del Sistema
-                            </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </AdminLayout>
     );
 }
