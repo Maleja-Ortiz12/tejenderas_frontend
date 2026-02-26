@@ -310,11 +310,6 @@ export default function Home() {
         { name: 'Fragancias', desc: 'Esencias y aromas únicos' },
     ];
 
-    const storageUrl = (path: string | null | undefined) => {
-        if (!path) return null;
-        const base = (import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api').replace('/api', '');
-        return `${base}/storage/${path}`;
-    };
 
     const getProductImages = (imagesData: any): string[] => {
         if (!imagesData) return [];
@@ -440,7 +435,7 @@ export default function Home() {
                                 {banner.imageUrl && (
                                     <div
                                         className="absolute inset-0 bg-center bg-cover"
-                                        style={{ backgroundImage: `url(${banner.imageUrl})` }}
+                                        style={{ backgroundImage: `url(${storageUrl(banner.imageUrl)})` }}
                                     ></div>
                                 )}
                                 <div className="absolute inset-0 bg-graphite/40"></div>
