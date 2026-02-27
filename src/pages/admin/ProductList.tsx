@@ -202,16 +202,6 @@ export default function ProductList() {
         }
     };
 
-    const getVariantTotals = (product: Product) => {
-        const entries = Object.values(product.variant_movements ?? {});
-        return entries.reduce(
-            (acc: { in: number; out: number }, entry) => ({
-                in: acc.in + (entry.in ?? 0),
-                out: acc.out + (entry.out ?? 0),
-            }),
-            { in: 0, out: 0 }
-        );
-    };
 
     useEffect(() => {
         fetchProducts();
