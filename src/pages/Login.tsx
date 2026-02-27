@@ -38,9 +38,9 @@ export default function Login() {
             <div className="absolute top-6 left-6 z-50">
                 <Link
                     to="/"
-                    className="flex items-center gap-2 px-4 py-2 bg-white text-graphite font-black uppercase tracking-widest text-xs rounded-xl border-4 border-white shadow-[4px_4px_0px_0px_#FF4D8D] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+                    className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 bg-white text-graphite font-black uppercase tracking-widest text-xs md:text-sm rounded-xl border-4 border-graphite shadow-[4px_4px_0px_0px_#FF4D8D] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
                 >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                     <span>Inicio</span>
                 </Link>
             </div>
@@ -51,17 +51,17 @@ export default function Login() {
                 <div className="absolute bottom-10 right-10 w-96 h-96 bg-teal rounded-full blur-3xl"></div>
             </div>
 
-            <div className="w-full max-md:safe-mobile-margin px-6 relative z-10">
+            <div className="w-full max-w-xl mx-auto max-md:safe-mobile-margin px-6 relative z-10">
                 <div className="text-center mb-6 flex flex-col items-center">
                     <Logo className="w-44 h-44 max-md:w-32 max-md:h-32 mb-4 drop-shadow-2xl filter hover:scale-105 transition-transform duration-300 mx-auto" />
-                    <h1 className="text-5xl max-md:text-4xl font-black text-white mb-2 tracking-tighter">
+                    <h1 className="text-5xl max-md:text-4xl font-black text-graphite mb-2 tracking-tighter">
                         ENTRE LANAS <span className="text-pink-hot">Y FRAGANCIAS</span>
                     </h1>
-                    <p className="text-gray-400 font-bold text-lg max-md:text-sm uppercase tracking-widest">Panel de Acceso</p>
+                    <p className="text-gray-500 font-bold text-lg max-md:text-sm uppercase tracking-widest">Panel de Acceso</p>
                 </div>
 
                 {/* Login Card */}
-                <div className="bg-white rounded-[3rem] max-md:rounded-[2rem] border-8 max-md:border-4 border-white shadow-[12px_12px_0px_0px_#FE6196] max-md:shadow-[8px_8px_0px_0px_#FE6196] py-16 px-14 max-md:p-8 relative mt-4 min-h-[300px] max-md:min-h-[400px] flex flex-col justify-center">
+                <div className="bg-white rounded-[3rem] max-md:rounded-[2rem] border-8 max-md:border-4 border-graphite shadow-[12px_12px_0px_0px_#FE6196] max-md:shadow-[8px_8px_0px_0px_#FE6196] py-16 px-14 max-md:p-8 relative mt-12 min-h-[300px] max-md:min-h-[400px] flex flex-col justify-center">
                     {/* Decorative pin/tape (optional visual flair) */}
                     <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-teal w-20 h-20 max-md:w-16 max-md:h-16 rounded-full border-8 max-md:border-4 border-graphite flex items-center justify-center shadow-[4px_4px_0px_0px_#333] z-20">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 max-md:h-8 max-md:w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
