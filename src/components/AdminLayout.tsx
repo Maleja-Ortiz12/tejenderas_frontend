@@ -43,42 +43,68 @@ export default function AdminLayout({ children, title, subtitle, actions, center
 
             {/* Header Navigation */}
             <header className="bg-graphite text-white sticky top-0 z-50 border-b border-gray-800">
-                <div className="max-w-[98%] mx-auto px-5 md:px-16 lg:px-24 h-16 md:h-20 flex items-center justify-between gap-8">
+                <div className="max-w-[98%] mx-auto px-5 md:px-16 lg:px-24 flex items-center justify-between gap-6 py-6 lg:py-8 relative">
 
                     {/* Brand */}
                     <div className="flex items-center gap-6 shrink-0 ml-2 md:ml-12">
                         <div className="flex items-center">
-                            <Logo className="w-10 h-10 md:w-14 md:h-14" />
+                            <Logo className="w-10 h-10 md:w-20 md:h-20" />
                         </div>
                         <div className="flex flex-col leading-none">
-                            <span className="text-lg md:text-xl font-black tracking-tighter uppercase">ENTRE LANAS</span>
+                            <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">ENTRE LANAS</span>
                             <span className="text-[10px] md:text-xs font-bold text-pink-hot tracking-widest uppercase">Y FRAGANCIAS</span>
                         </div>
                     </div>
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden lg:flex items-center justify-center flex-1 gap-2">
-                        {menuItems.map((item) => {
-                            const isActive = location.pathname.startsWith(item.path);
-                            return (
-                                <Link
-                                    key={item.path}
-                                    to={item.path}
-                                    className={`
-                                        flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 group
-                                        ${isActive
-                                            ? 'bg-pink-hot text-white shadow-md'
-                                            : 'text-gray-400 hover:text-white hover:bg-white/5'}
-                                    `}
-                                >
-                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                                    </svg>
-                                    <span className="text-xs font-black uppercase tracking-wider">{item.label}</span>
-                                </Link>
-                            );
-                        })}
-                    </nav>
+                    {/* Desktop Navigation (2 Rows in Center) */}
+                    <div className="hidden lg:flex flex-col items-center gap-3 flex-1 overflow-visible">
+                        {/* Row 1: First 5 items */}
+                        <div className="flex items-center gap-2">
+                            {menuItems.slice(0, 5).map((item) => {
+                                const isActive = location.pathname.startsWith(item.path);
+                                return (
+                                    <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        className={`
+                                            flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 group
+                                            ${isActive
+                                                ? 'bg-pink-hot text-white shadow-md'
+                                                : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                                        `}
+                                    >
+                                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                                        </svg>
+                                        <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">{item.label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                        {/* Row 2: Remaining items */}
+                        <div className="flex items-center gap-2">
+                            {menuItems.slice(5).map((item) => {
+                                const isActive = location.pathname.startsWith(item.path);
+                                return (
+                                    <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        className={`
+                                            flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-200 group
+                                            ${isActive
+                                                ? 'bg-pink-hot text-white shadow-md'
+                                                : 'text-gray-400 hover:text-white hover:bg-white/5'}
+                                        `}
+                                    >
+                                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                                        </svg>
+                                        <span className="text-[11px] font-black uppercase tracking-wider whitespace-nowrap">{item.label}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     {/* Desktop Actions */}
                     <div className="hidden md:flex items-center gap-4 shrink-0">
@@ -147,8 +173,8 @@ export default function AdminLayout({ children, title, subtitle, actions, center
                                 onClick={() => setIsMenuOpen(false)}
                                 className="w-12 h-12 flex items-center justify-center text-white/40 hover:text-white"
                             >
-                                <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8h16M4 16h16" />
+                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </div>
@@ -212,7 +238,7 @@ export default function AdminLayout({ children, title, subtitle, actions, center
             )}
 
             {/* Main Content Area */}
-            <main className={`flex-1 flex flex-col pt-16 md:pt-20 pb-12 md:pb-24 safe-mobile-margin md:px-[2.5%] max-w-[1400px] mx-auto w-full ${mainWrapperClassName || ''}`}>
+            <main className={`flex-1 flex flex-col pt-8 md:pt-12 pb-12 md:pb-24 safe-mobile-margin md:px-[2.5%] max-w-[1400px] mx-auto w-full ${mainWrapperClassName || ''}`}>
                 <div className="w-full space-y-12">
                     {/* Section Header */}
                     {(title || actions) && (
